@@ -1,0 +1,17 @@
+nbproject
+._*
+.~lock.*
+.buildpath
+.DS_Store
+.idea
+.project
+.settings
+composer.lock
+vendor/bin
+/behat.yml
+/bin/
+/vendor/symfony/
+/vendor/fabpot/
+/vendor/behat/
+/vendor/guzzlehttp/
+/vendor/mvlabs/
