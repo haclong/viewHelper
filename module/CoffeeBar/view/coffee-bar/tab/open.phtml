@@ -1,0 +1,29 @@
+<h1>Ouvrir une nouvelle note</h1>
+
+<?php 
+$form = $this->result['form'] ;
+$form->prepare() ;
+
+$form->setAttribute('action',  $this->url('tab/open')) ;
+$form->setAttribute('method', 'post') ;
+
+$id = $form->get('id') ;
+$id->setValue(uniqid()) ;
+
+?>
+
+<?php  echo $this->form()->openTag($form) ; ?>
+<div class='form-group'>
+<?php  echo $this->formRow($form->get('tableNumber')) ; ?>
+</div>
+<div class='form-group'>
+<?php  echo $this->formRow($form->get('waiter')) ; ?>
+</div>
+<?php
+echo $this->formRow($form->get('security')) ;
+echo $this->formHidden($id) ;
+echo $this->formRow($form->get('submit')) ;
+
+echo $this->form()->closeTag() ;
+?>
+

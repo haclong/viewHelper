@@ -1,0 +1,15 @@
+<?php
+
+echo __FILE__ ;
+
+if(!isset($result))
+{
+    $result = array() ;
+}
+
+var_dump($result) ;
+
+foreach($result as $item)
+{
+    echo "<br>" . $item->getDescription() ;
+}
