@@ -3,15 +3,9 @@
 namespace CoffeeBar\Controller ;
 
 use Zend\Mvc\Controller\AbstractActionController;
-//use Zend\EventManager\EventManager ;
 
 class TabController extends AbstractActionController
 {
-//    public function __construct(EventManager $eventManager)
-//    {
-//        $this->eventsManager = $eventManager ;
-//    }
-
     public function openAction()
     {
         $form = $this->serviceLocator->get('OpenTabForm') ;
@@ -24,8 +18,7 @@ class TabController extends AbstractActionController
             if($form->isValid()) {
 //var_dump($form->getObject()) ;
                 $openTab = $form->getObject() ;
-//                $this->eventsManager->trigger('openTab', $this, array($form->getObject())) ;
-                return $this->redirect()->toRoute('tab/order', array('id' => $openTab->getTableNumber()));
+//                return $this->redirect()->toRoute('tab/order', array('id' => $openTab->getTableNumber()));
             }
         }
         
@@ -35,13 +28,10 @@ class TabController extends AbstractActionController
     
     public function orderAction()
     {
-        $formManager = $this->serviceLocator->get('FormElementManager') ;
-        $form = $formManager->get('CoffeeBar\Form\PlaceOrderForm') ;
+        $form = $this->serviceLocator->get('PlaceOrderForm') ;
         $request = $this->getRequest() ;
 
         if ($id = (int) $this->params()->fromRoute('id')) {
-            $orderId = $form->get('id') ;
-//        var_dump($request->isGet()) ;
             $form->get('id')->setValue($id) ;
         } elseif($request->isPost()) {
             $form->setData($request->getPost()) ;

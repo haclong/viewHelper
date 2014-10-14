@@ -9,10 +9,13 @@
 
 namespace CoffeeBar;
 
-use CoffeeBar\Entity\OpenTab;
+use CoffeeBar\Command\OpenTab;
+use CoffeeBar\Command\PlaceOrder;
+use CoffeeBar\Entity\TabAggregate;
 use CoffeeBar\Form\MenuSelect;
 use CoffeeBar\Form\WaiterSelect;
 use Zend\ModuleManager\Feature\FormElementProviderInterface;
+use Zend\Mvc\MvcEvent ;
 
 class Module implements FormElementProviderInterface
 {
@@ -21,6 +24,13 @@ class Module implements FormElementProviderInterface
         return include __DIR__ . '/config/module.config.php';
     }
 
+    public function onBootstrap(MvcEvent $event)
+    {
+        $sm = $event->getApplication()->getServiceManager() ;
+        $em = $sm->get('TabEventManager');
+        $em->attachAggregate($sm->get('TabAggregate')) ;
+    }
+    
     public function getAutoloaderConfig()
     {
         return array(
@@ -37,13 +47,13 @@ class Module implements FormElementProviderInterface
             'factories' => array(
                 'WaiterSelect' => function($sm) {
                     $serviceLocator = $sm->getServiceLocator() ;
-                    $waiters = $serviceLocator->get('CoffeeBar\Entity\Waiters') ;
+                    $waiters = $serviceLocator->get('CoffeeBarEntity\Waiters') ;
                     $select = new WaiterSelect($waiters) ;
                     return $select ;
                 },
                 'MenuSelect' => function($sm) {
                     $serviceLocator = $sm->getServiceLocator() ;
-                    $menus = $serviceLocator->get('CoffeeBar\Entity\MenuItems') ;
+                    $menus = $serviceLocator->get('CoffeeBarEntity\MenuItems') ;
                     $select = new MenuSelect($menus) ;
                     return $select ;
                 },
@@ -55,22 +65,34 @@ class Module implements FormElementProviderInterface
     {
         return array(
             'invokables' => array(
-                'CoffeeBar\Entity\Waiters' => 'CoffeeBar\Entity\Waiters',
-                'CoffeeBar\Entity\MenuItems' => 'CoffeeBar\Entity\MenuItems',
-                'CoffeeBar\Entity\TabAggregate' => 'CoffeeBar\Entity\TabAggregate',
+                'CoffeeBarEntity\Waiters' => 'CoffeeBar\Entity\Waiters',
+                'CoffeeBarEntity\MenuItems' => 'CoffeeBar\Entity\MenuItems',
+                'TabEventManager' => 'CoffeeBar\Event\TabEventManager',
             ),
             'factories' => array(
                 'OpenTabForm' => function($sm) {
                     $formManager = $sm->get('FormElementManager') ;
                     $form = $formManager->get('CoffeeBar\Form\OpenTabForm') ;
-                    $form->setObject($sm->get('OpenTabEntity')) ;
+                    $form->setObject($sm->get('OpenTabCommand')) ;
                     return $form ;
                 },
-                'OpenTabEntity' => function($sm) {
-                    $tab = $sm->get('CoffeeBar\Entity\TabAggregate') ;
+                'OpenTabCommand' => function($sm) {
+                    $tab = $sm->get('TabEventManager') ;
                     $openTab = new OpenTab() ;
-                    $openTab->setEventManager($tab->events()) ;
+                    $openTab->setEventManager($tab) ;
                     return $openTab ;
+                },
+                'PlaceOrderCommand' => function($sm) {
+                    $tab = $sm->get('TabEventManager') ;
+                    $placeOrder = new PlaceOrder() ;
+                    $placeOrder->setEventManager($tab) ;
+                    return $placeOrder ;
+                },
+                'TabAggregate' => function($sm) {
+                    $events = $sm->get('TabEventManager') ;
+                    $tab = new TabAggregate() ;
+                    $tab->setEventManager($events) ;
+                    return $tab ;
                 },
             ),
         ) ;

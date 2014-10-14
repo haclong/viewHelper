@@ -8,10 +8,10 @@
 
 namespace CoffeeBar\Form ;
 
-use CoffeeBar\Entity\PlaceOrder;
+use CoffeeBar\Entity\OrderModel;
 use Zend\Form\Element\Csrf;
 use Zend\Form\Form;
-use Zend\Stdlib\Hydrator\ClassMethods;
+use Zend\Stdlib\Hydrator\ArraySerializable;
 
 class PlaceOrderForm extends Form
 {
@@ -39,8 +39,8 @@ class PlaceOrderForm extends Form
         parent::__construct('order') ;
         
         $this->setAttribute('method', 'post')
-             ->setHydrator(new ClassMethods(false))
-             ->setObject(new PlaceOrder()) ;
+             ->setHydrator(new ArraySerializable(false))
+             ->setObject(new OrderModel) ;
         
         $this->add(array(
             'name' => 'id',

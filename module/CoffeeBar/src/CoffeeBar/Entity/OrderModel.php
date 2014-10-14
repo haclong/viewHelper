@@ -8,12 +8,12 @@
 
 namespace CoffeeBar\Entity ;
 
-use ArrayObject;
+use OrderItems;
 
-class PlaceOrder
+class OrderModel
 {
     protected $id ; // int
-    protected $items ; // ArrayObject
+    protected $items ; // OrderItems
     
     function getId() {
         return $this->id;
@@ -28,6 +28,6 @@ class PlaceOrder
     }
 
     function setItems(array $items) {
-        $this->items = new ArrayObject($items);
+        $this->items = new OrderItems($items);
     }
 }
