@@ -8,6 +8,7 @@
 
 namespace CoffeeBar\Command ;
 
+use CoffeeBar\Exception\TabAlreadyOpened;
 use Zend\EventManager\EventManagerAwareInterface;
 use Zend\EventManager\EventManagerInterface;
 
@@ -54,13 +55,24 @@ class OpenTab implements EventManagerAwareInterface
         $this->waiter = $waiter;
     }
     
+    public function setOpenTabs($openTabs)
+    {
+        $this->openTabs = $openTabs ;
+    }
+    
     public function populate($data = array()) {
         $this->id = (isset($data['id'])) ? $data['id'] : null;
         $this->tableNumber = (isset($data['tableNumber'])) ? $data['tableNumber'] : null;
-        $this->waiter = (isset($data['waiter'])) ? $data['waiter'] : null;               
-        $this->events->trigger('openTab', '', array($this)) ;
+        $this->waiter = (isset($data['waiter'])) ? $data['waiter'] : null; 
+        
+        if($this->openTabs->isTableActive($this->tableNumber))
+        {
+            throw new TabAlreadyOpened('Tab is already opened') ;
+        } else {
+            $this->events->trigger('openTab', '', array($this)) ;
+        }
     }
-    
+
     public function getArrayCopy() {
         return array(
             'id' => $this->id, 

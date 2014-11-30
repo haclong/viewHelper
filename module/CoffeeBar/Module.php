@@ -11,11 +11,15 @@ namespace CoffeeBar;
 
 use CoffeeBar\Command\OpenTab;
 use CoffeeBar\Command\PlaceOrder;
-use CoffeeBar\Entity\TabAggregate;
+use CoffeeBar\Entity\OpenTabs;
+use CoffeeBar\Entity\TodoByTab;
+use CoffeeBar\Event\TabAggregate;
 use CoffeeBar\Form\MenuSelect;
 use CoffeeBar\Form\WaiterSelect;
+use CoffeeBar\Service\TabCacheService;
 use Zend\ModuleManager\Feature\FormElementProviderInterface;
-use Zend\Mvc\MvcEvent ;
+use Zend\Mvc\MvcEvent;
+
 
 class Module implements FormElementProviderInterface
 {
@@ -28,7 +32,15 @@ class Module implements FormElementProviderInterface
     {
         $sm = $event->getApplication()->getServiceManager() ;
         $em = $sm->get('TabEventManager');
-        $em->attachAggregate($sm->get('TabAggregate')) ;
+        $tabAggregate = $sm->get('TabAggregate') ;
+        $openTabs = $sm->get('OpenTabs') ;
+        $em->attachAggregate($tabAggregate) ;
+        $em->attachAggregate($openTabs) ;
+        
+        $cache = $sm->get('TabCache') ;
+//        $cache2 = $cache->getCache() ;
+//        $cache2->flush() ;
+        $cache->setOpenTabs(serialize(new TodoByTab())) ;
     }
     
     public function getAutoloaderConfig()
@@ -68,6 +80,7 @@ class Module implements FormElementProviderInterface
                 'CoffeeBarEntity\Waiters' => 'CoffeeBar\Entity\Waiters',
                 'CoffeeBarEntity\MenuItems' => 'CoffeeBar\Entity\MenuItems',
                 'TabEventManager' => 'CoffeeBar\Event\TabEventManager',
+//                'OpenTabs' => 'CoffeeBar\Entity\OpenTabs',
             ),
             'factories' => array(
                 'OpenTabForm' => function($sm) {
@@ -80,6 +93,7 @@ class Module implements FormElementProviderInterface
                     $tab = $sm->get('TabEventManager') ;
                     $openTab = new OpenTab() ;
                     $openTab->setEventManager($tab) ;
+                    $openTab->setOpenTabs($sm->get('OpenTabs')) ;
                     return $openTab ;
                 },
                 'PlaceOrderCommand' => function($sm) {
@@ -90,9 +104,28 @@ class Module implements FormElementProviderInterface
                 },
                 'TabAggregate' => function($sm) {
                     $events = $sm->get('TabEventManager') ;
+                    $cache = $sm->get('Cache\Persistence') ;
                     $tab = new TabAggregate() ;
                     $tab->setEventManager($events) ;
+                    $tab->setCache($cache) ;
                     return $tab ;
+                },
+                'PlaceOrderForm' => function($sm) {
+                    $formManager = $sm->get('FormElementManager') ;
+                    $form = $formManager->get('CoffeeBar\Form\PlaceOrderForm') ;
+                    return $form ;
+                },
+                'TabCache' => function($sm) {
+                    $cacheService = $sm->get('Cache\Persistence') ;
+                    $tabCache = new TabCacheService() ;
+                    $tabCache->setCache($cacheService) ;
+                    return $tabCache ;
+                },
+                'OpenTabs' => function($sm) {
+                    $cache = $sm->get('Cache\Persistence') ;
+                    $openTabs = new OpenTabs() ;
+                    $openTabs->setCache($cache) ;
+                    return $openTabs ;
                 },
             ),
         ) ;

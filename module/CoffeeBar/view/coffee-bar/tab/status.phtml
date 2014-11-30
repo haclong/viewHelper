@@ -1,0 +1,99 @@
+<h1>Tab status</h1>
+
+<h2>Table #<?php echo $result->getTableNumber(); ?></h2>
+<?php
+
+var_dump($result) ;
+
+?>
+
+<div><a href="<?php echo $this->url('tab/order', array('id' => $result->getTableNumber())) ;?>">Order Food/Drink</a></div>
+
+<h3>Items to serve</h3>
+
+<?php
+if(count($result->getItemsToServe()) == 0)
+{
+    echo 'Pas de commande en cours' ;
+} else {
+?>
+<form> <!-- mark served action table number-->
+<table>
+    <tr>
+        <th>Menu #</th>
+        <th>Description</th>
+        <th>Mark Served</th>
+    </tr>
+<?php    
+    foreach($result->getItemsToServe as $k=> $v)
+    {
+        echo "<tr>" ;
+        echo "<td>--menu #--</td>" ;
+        echo "<td>--description--</td>" ;
+        echo "<td><input type='checkbox'/></td>" ;
+        echo "</tr>" ;
+    }
+?>
+</table>
+    <input type='submit' value='Mark served'/>
+</form>
+<?php
+}
+?>
+
+
+<h3>Food in preparation</h3>
+
+<?php
+if(count($result->getItemsInPreparation()) == 0)
+{
+    echo 'Pas de commande en cours' ;
+} else {
+?>
+<table>
+    <tr>
+        <th>Menu #</th>
+        <th>Description</th>
+    </tr>
+<?php    
+    foreach($result->getItemsInPreparation as $k=> $v)
+    {
+        echo "<tr>" ;
+        echo "<td>--menu #--</td>" ;
+        echo "<td>--description--</td>" ;
+        echo "</tr>" ;
+    }
+?>
+</table>
+<?php
+}
+?>
+
+
+
+<h3>Items already served</h3>
+
+<?php
+if(count($result->getItemsServed()) == 0)
+{
+    echo 'Pas de commande en cours' ;
+} else {
+?>
+<table>
+    <tr>
+        <th>Menu #</th>
+        <th>Description</th>
+    </tr>
+<?php    
+    foreach($result->getItemsServed as $k=> $v)
+    {
+        echo "<tr>" ;
+        echo "<td>--menu #--</td>" ;
+        echo "<td>--description--</td>" ;
+        echo "</tr>" ;
+    }
+?>
+</table>
+<?php
+}
+?>

@@ -2,6 +2,7 @@
 
 namespace CoffeeBar\Controller ;
 
+use CoffeeBar\Exception\TabAlreadyOpened;
 use Zend\Mvc\Controller\AbstractActionController;
 
 class TabController extends AbstractActionController
@@ -14,14 +15,16 @@ class TabController extends AbstractActionController
         if($request->isPost()) {
             $form->setData($request->getPost()) ;
             
-//var_dump($request->getPost()) ;
-            if($form->isValid()) {
-//var_dump($form->getObject()) ;
+            try {
+                $form->isValid() ;
                 $openTab = $form->getObject() ;
-//                return $this->redirect()->toRoute('tab/order', array('id' => $openTab->getTableNumber()));
+                return $this->redirect()->toRoute('tab/order', array('id' => $openTab->getTableNumber()));
+            } catch (TabAlreadyOpened $ex) {
+                $this->flashMessenger()->addErrorMessage($ex->getMessage());
+                return $this->redirect()->toRoute('tab/open');
             }
         }
-        
+
         $result['form'] = $form ;
         return array('result' => $result) ;
     }
@@ -36,10 +39,9 @@ class TabController extends AbstractActionController
         } elseif($request->isPost()) {
             $form->setData($request->getPost()) ;
             
-//var_dump($request->getPost()) ;
+var_dump($request->getPost()) ;
             if($form->isValid()) {
-//var_dump($openTab) ;
-                var_dump($form->getObject()) ;
+var_dump($form->getObject()) ;
             }
         } else {
             return $this->redirect()->toRoute('tab/open');
@@ -56,6 +58,15 @@ class TabController extends AbstractActionController
     
     public function listOpenedAction()
     {
-        return array('result' => '') ;
+        $cache = $this->serviceLocator->get('TabCache') ;
+        $openTabs = $cache->getOpenTabs() ;
+        return array('result' => $openTabs) ;
+    }
+    
+    public function statusAction()
+    {
+        $openTabs = $this->serviceLocator->get('OpenTabs') ;
+        $status = $openTabs->tabForTable($this->params()->fromRoute('id')) ;
+        return array('result' => $status) ;
     }
 }

@@ -7,9 +7,17 @@ if(!isset($result))
     $result = array() ;
 }
 
-var_dump($result) ;
+?>
+<pre>
+<?php
+$openTabs = unserialize($result->getItem('openTabs')) ;
+var_dump($openTabs) ;
 
-foreach($result as $item)
+foreach($openTabs as $k => $v)
 {
-    echo "<br>" . $item->getDescription() ;
+    var_dump(unserialize($result->getItem($k))) ;
 }
+
+
+?>
+</pre>

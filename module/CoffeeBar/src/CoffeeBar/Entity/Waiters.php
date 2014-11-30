@@ -14,7 +14,11 @@ class Waiters extends ArrayObject
 {
     public function __construct(Array $array=null)
     {
-        $array = array('Paul', 'John', 'Melissa', 'Julie', 'Michael') ;
+        $array = array('paul' => 'Paul', 
+                       'john' => 'John', 
+                       'melissa' => 'Melissa', 
+                       'julie' => 'Julie', 
+                       'michael' => 'Michael') ;
         parent::__construct($array) ;
     }
 }

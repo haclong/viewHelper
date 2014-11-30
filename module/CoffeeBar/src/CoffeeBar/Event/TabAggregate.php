@@ -6,11 +6,12 @@
  * and open the template in the editor.
  */
 
-namespace CoffeeBar\Entity ;
+namespace CoffeeBar\Event ;
 
+use CoffeeBar\Entity\TabStory;
 use CoffeeBar\Event\TabOpened;
-use Zend\EventManager\ListenerAggregateInterface;
 use Zend\EventManager\EventManagerInterface;
+use Zend\EventManager\ListenerAggregateInterface;
 
 class TabAggregate implements ListenerAggregateInterface 
 {
@@ -18,6 +19,8 @@ class TabAggregate implements ListenerAggregateInterface
     protected $listeners = array() ;
     protected $events ;
     protected $id ;
+    protected $cache ;
+    protected $tabs ;
 
     public function setEventManager(EventManagerInterface $events)
     {
@@ -54,18 +57,60 @@ class TabAggregate implements ListenerAggregateInterface
     {
         return $this->id ;
     }
+    public function getCache() {
+        return $this->cache;
+    }
+
+    public function setCache($cache) {
+        $this->cache = $cache;
+    }
+    
+    /**
+     * Load the tab story by id
+     * @param string $id - Tab guid
+     */
+    public function loadTab($id)
+    {
+        if($this->cache->hasItem($id))
+        {
+            return unserialize($this->cache->getItem($id)) ;
+        } else {
+            $story = new TabStory() ;
+            $story->setId($id) ;
+            return $story ;
+        }
+    }
+    /**
+     * Stockage en cache
+     * @param string $id - Tab guid
+     * @param string $eventName - Event name
+     */
+    public function saveTab($id, $eventName)
+    {
+        $story = $this->loadTab($id) ;
+        $story->addEvents($eventName) ;
+        $this->cache->setItem($id, serialize($story)) ;
+    }
     
     public function onOpenTab($events)
     {
         $openTab = $events->getParam(0) ;
-        var_dump('je suis ici') ;
+        
+        $this->saveTab($openTab->getId(), 'onOpenTab') ;
+
+        $this->setId($openTab->getId()) ;
+
+//        var_dump('je suis ici') ;
+//        var_dump($events) ;
         $openedTab = new TabOpened() ;
         $openedTab->setId($openTab->getId()) ;
         $openedTab->setTableNumber($openTab->getTableNumber()) ;
         $openedTab->setWaiter($openTab->getWaiter()) ;
+
         $this->events->trigger('tabOpened', $this, array('tabOpened' => $openedTab)) ;
-var_dump($openedTab) ;
-        return $openedTab ;
+        var_dump(unserialize($this->cache->getItem($openTab->getId()))) ;
+//        var_dump($openedTab) ;
+//        return $openedTab ;
     }
     
     public function onTabOpened($events)

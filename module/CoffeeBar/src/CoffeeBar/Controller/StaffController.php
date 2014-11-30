@@ -8,7 +8,8 @@ class StaffController extends AbstractActionController
 {
     public function waiterToDoAction()
     {
-        return array('result' => '') ;
+        $waiter = $this->params()->fromRoute('name');
+        return array('result' => $waiter) ;
     }
     
     public function chefToDoAction()
@@ -18,6 +19,7 @@ class StaffController extends AbstractActionController
     
     public function waiterListAction()
     {
-        return array('result' => '') ;
+        $waiters = $this->serviceLocator->get('CoffeeBarEntity\Waiters') ;
+        return array('result' => $waiters) ;
     }
 }

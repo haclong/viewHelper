@@ -82,6 +82,16 @@ return array(
                                 ),
                                 'may_terminate' => true,
                             ),
+                            'status' => array(
+                                'type' => 'Segment',
+                                'options' => array(
+                                    'route' => '/status/[:id]',
+                                    'defaults' => array(
+                                        'controller'    => 'CoffeeBarController\Tab',
+                                        'action'        => 'status',
+                                    ),
+                                ),
+                            ),
                         ),
                     ),
                     'staff' => array(
@@ -89,6 +99,7 @@ return array(
                         'options' => array(
                             'route' => '/staff',
                         ),
+//                        'may_terminate' => true,
                         'child_routes' => array(
                             'list' => array(
                                 'type' => 'Literal',
@@ -106,7 +117,7 @@ return array(
                                 'options' => array(
                                     'route' => '/[:name]',
                                     'constraints' => array(
-                                        'name' => '[a-zA-Z]',
+                                        'name' => 'waiters{0}|[a-zA-Z]+',
                                     ),
                                     'defaults' => array(
                                         'controller'    => 'CoffeeBarController\Staff',

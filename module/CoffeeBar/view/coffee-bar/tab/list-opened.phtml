@@ -1,10 +1,19 @@
-<?php
+<h1>Notes ouvertes</h1>
 
-echo __FILE__ ;
-
-if(!isset($result))
-{
-    $result = array() ;
-}
-
-var_dump($result) ;
+<table>
+    <tr>
+        <th>Serveur</th>
+        <th>Table</th>
+        <th></th>
+    </tr>
+    <?php
+        foreach($result as $k => $v)
+        {
+            echo "<tr>" ;
+            echo "<td>" .$v->getWaiter(). "</td>" ;
+            echo "<td>" .$v->getTableNumber(). "</td>" ;
+            echo "<td><a href='".$this->url('tab/status', array('id' => $v->getTableNumber()))."'>Voir le statut</a></td>" ;
+            echo "</tr>" ;
+        }
+    ?>
+</table>

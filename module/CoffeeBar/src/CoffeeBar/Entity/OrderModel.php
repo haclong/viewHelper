@@ -8,7 +8,7 @@
 
 namespace CoffeeBar\Entity ;
 
-use OrderItems;
+use CoffeeBar\Entity\OrderItems;
 
 class OrderModel
 {
@@ -28,6 +28,18 @@ class OrderModel
     }
 
     function setItems(array $items) {
-        $this->items = new OrderItems($items);
+        $this->items = new OrderItems($items) ;
+    }
+
+    public function populate($data = array()) {
+        $this->id = (isset($data['id'])) ? $data['id'] : null;
+        $this->items = (isset($data['items'])) ? new OrderItems($data['items']) : null;
+    }
+    
+    public function getArrayCopy() {
+        return array(
+            'id' => $this->id, 
+            'items' => $this->items->getArrayCopy(), 
+                ) ;
     }
 }

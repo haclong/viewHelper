@@ -32,7 +32,7 @@ class MenuItemFieldset extends Fieldset
     {
         parent::__construct('menuItems') ;
         
-        $this->setHydrator(new ClassMethods) ;
+        $this->setHydrator(new ClassMethods()) ;
         $this->setObject(new OrderItem()) ;
         
         $this->add(array(
@@ -41,6 +41,7 @@ class MenuItemFieldset extends Fieldset
                 'label' => ' ',
             ),
             'attributes' => array(
+                'value' => 1,
                 'class' => 'form-control text-right',
                 'size' => 4,
             ),

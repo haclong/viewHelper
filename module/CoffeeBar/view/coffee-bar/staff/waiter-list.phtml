@@ -1,10 +1,12 @@
+<h1>Staff</h1>
+
+<ul>
 <?php
 
-echo __FILE__ ;
 
-if(!isset($result))
+foreach($result as $k => $v)
 {
-    $result = array() ;
+    echo "<li><a href='" . $this->url('staff/todo', array('name' => $k)) . "'>" . $v . "</a>" ;
 }
-
-var_dump($result) ;
+?>
+</ul>
