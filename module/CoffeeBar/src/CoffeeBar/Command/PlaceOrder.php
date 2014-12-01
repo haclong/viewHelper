@@ -30,21 +30,15 @@ class PlaceOrder implements EventManagerAwareInterface
         $this->id = $id;
     }
 
-    function setItems(array $items) {
-        $this->items = new ArrayObject($items);
+    function setItems($items) {
+        $this->items = $items ;
     }
     
-    public function populate($data = array()) {
-        $this->id = (isset($data['id'])) ? $data['id'] : null;
-        $this->items = (isset($data['items'])) ? $data['items'] : null;
-        $this->events->trigger('placeOrder', '', array($this)) ;
-    }
-    
-    public function getArrayCopy() {
-        return array(
-            'id' => $this->id, 
-            'items' => $this->items, 
-                ) ;
+    public function placeOrder($id, $items)
+    {
+        $this->setId($id) ;
+        $this->setItems($items) ;
+        $this->events->trigger('placeOrder', '', array('placeOrder' => $this)) ;
     }
 
     public function setEventManager(EventManagerInterface $events)

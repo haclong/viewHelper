@@ -19,9 +19,6 @@ class MenuItemFieldset extends Fieldset
         $this->add(array(
             'name' => 'id',
             'type' => 'MenuSelect',
-            'options' => array(
-                'label' => ' ',
-            ),
             'attributes' => array(
                 'class' => 'form-control',
             ),

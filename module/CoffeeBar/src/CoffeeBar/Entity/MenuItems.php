@@ -34,4 +34,16 @@ class MenuItems extends ArrayObject
         }
         return $array ;
     }
+    
+    public function getById($id)
+    {
+        $iterator = $this->getIterator() ;
+        foreach($iterator as $item)
+        {
+            if($id == $item->getId())
+            {
+                return $item ;
+            }
+        }
+    }
 }

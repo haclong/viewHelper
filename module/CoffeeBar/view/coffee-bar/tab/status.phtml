@@ -25,11 +25,11 @@ if(count($result->getItemsToServe()) == 0)
         <th>Mark Served</th>
     </tr>
 <?php    
-    foreach($result->getItemsToServe as $k=> $v)
+    foreach($result->getItemsToServe() as $k=> $v)
     {
         echo "<tr>" ;
-        echo "<td>--menu #--</td>" ;
-        echo "<td>--description--</td>" ;
+        echo "<td>" .$v->getMenuNumber(). "</td>" ;
+        echo "<td>" .$v->getDescription() . "</td>" ;
         echo "<td><input type='checkbox'/></td>" ;
         echo "</tr>" ;
     }
@@ -56,11 +56,11 @@ if(count($result->getItemsInPreparation()) == 0)
         <th>Description</th>
     </tr>
 <?php    
-    foreach($result->getItemsInPreparation as $k=> $v)
+    foreach($result->getItemsInPreparation() as $k=> $v)
     {
         echo "<tr>" ;
-        echo "<td>--menu #--</td>" ;
-        echo "<td>--description--</td>" ;
+        echo "<td>" .$v->getMenuNumber(). "</td>" ;
+        echo "<td>" .$v->getDescription() . "</td>" ;
         echo "</tr>" ;
     }
 ?>
@@ -85,11 +85,11 @@ if(count($result->getItemsServed()) == 0)
         <th>Description</th>
     </tr>
 <?php    
-    foreach($result->getItemsServed as $k=> $v)
+    foreach($result->getItemsServed() as $k=> $v)
     {
         echo "<tr>" ;
-        echo "<td>--menu #--</td>" ;
-        echo "<td>--description--</td>" ;
+        echo "<td>" .$v->getMenuNumber(). "</td>" ;
+        echo "<td>" .$v->getDescription() . "</td>" ;
         echo "</tr>" ;
     }
 ?>

@@ -8,8 +8,6 @@
 
 namespace CoffeeBar\Entity ;
 
-use CoffeeBar\Entity\OrderItems;
-
 class OrderModel
 {
     protected $id ; // int
@@ -27,19 +25,19 @@ class OrderModel
         $this->id = $id;
     }
 
-    function setItems(array $items) {
-        $this->items = new OrderItems($items) ;
+    function setItems($items) {
+        $this->items = $items ;
     }
 
     public function populate($data = array()) {
-        $this->id = (isset($data['id'])) ? $data['id'] : null;
-        $this->items = (isset($data['items'])) ? new OrderItems($data['items']) : null;
+        isset($data['id']) ? $this->setId($data['id']) : null;
+        isset($data['items']) ? $this->setItems($data['items']) : null;
     }
     
     public function getArrayCopy() {
         return array(
             'id' => $this->id, 
-            'items' => $this->items->getArrayCopy(), 
+            'items' => $this->items, 
                 ) ;
     }
 }

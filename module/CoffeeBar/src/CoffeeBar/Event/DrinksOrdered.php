@@ -8,9 +8,11 @@
 
 namespace CoffeeBar\Event ;
 
+use CoffeeBar\Entity\OrderedItems;
+
 class DrinksOrdered
 {
-    protected $id ; // int
+    protected $id ; // guid
     protected $items ; // OrderedItems
     
     function getId() {

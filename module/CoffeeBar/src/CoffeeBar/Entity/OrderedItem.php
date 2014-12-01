@@ -6,44 +6,44 @@
  * and open the template in the editor.
  */
 
-namespace CoffeeBar\Event ;
+namespace CoffeeBar\Entity ;
 
 class OrderedItem
 {
-    protected $id ; // int
+    protected $id ; // int Menu number
     protected $description ; // string
     protected $price ; // float
     protected $isDrink ; // bool
 
-    function getId() {
+    public function getId() {
         return $this->id;
     }
 
-    function getDescription() {
+    public function getDescription() {
         return $this->description;
     }
 
-    function getPrice() {
+    public function getPrice() {
         return $this->price;
     }
 
-    function getIsDrink() {
+    public function getIsDrink() {
         return $this->isDrink;
     }
 
-    function setId($id) {
+    public function setId($id) {
         $this->id = $id;
     }
 
-    function setDescription($description) {
+    public function setDescription($description) {
         $this->description = $description;
     }
 
-    function setPrice($price) {
+    public function setPrice($price) {
         $this->price = $price;
     }
 
-    function setIsDrink($isDrink) {
+    public function setIsDrink($isDrink) {
         $this->isDrink = $isDrink;
     }
 }

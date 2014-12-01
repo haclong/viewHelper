@@ -8,6 +8,8 @@
 
 namespace CoffeeBar\Entity ;
 
+use ArrayObject;
+
 class TabStatus
 {
     protected $tabId;
@@ -44,16 +46,15 @@ class TabStatus
         $this->tableNumber = $tableNumber;
     }
 
-    public function setItemsToServe($itemsToServe) {
+    public function setItemsToServe(ArrayObject $itemsToServe) {
         $this->itemsToServe = $itemsToServe;
     }
 
-    public function setItemsInPreparation($itemsInPreparation) {
+    public function setItemsInPreparation(ArrayObject $itemsInPreparation) {
         $this->itemsInPreparation = $itemsInPreparation;
     }
 
-    public function setItemsServed($itemsServed) {
+    public function setItemsServed(ArrayObject $itemsServed) {
         $this->itemsServed = $itemsServed;
     }
-
 }

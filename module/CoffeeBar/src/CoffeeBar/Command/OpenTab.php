@@ -69,7 +69,7 @@ class OpenTab implements EventManagerAwareInterface
         {
             throw new TabAlreadyOpened('Tab is already opened') ;
         } else {
-            $this->events->trigger('openTab', '', array($this)) ;
+            $this->events->trigger('openTab', '', array('openTab' => $this)) ;
         }
     }
 

@@ -38,8 +38,7 @@ class Module implements FormElementProviderInterface
         $em->attachAggregate($openTabs) ;
         
         $cache = $sm->get('TabCache') ;
-//        $cache2 = $cache->getCache() ;
-//        $cache2->flush() ;
+//        $cache->getCache()->flush() ;
         $cache->setOpenTabs(serialize(new TodoByTab())) ;
     }
     
@@ -80,7 +79,8 @@ class Module implements FormElementProviderInterface
                 'CoffeeBarEntity\Waiters' => 'CoffeeBar\Entity\Waiters',
                 'CoffeeBarEntity\MenuItems' => 'CoffeeBar\Entity\MenuItems',
                 'TabEventManager' => 'CoffeeBar\Event\TabEventManager',
-//                'OpenTabs' => 'CoffeeBar\Entity\OpenTabs',
+                'OrderedItems' => 'CoffeeBar\Entity\OrderedItems',
+                'OrderedItem' => 'CoffeeBar\Entity\OrderedItem',
             ),
             'factories' => array(
                 'OpenTabForm' => function($sm) {

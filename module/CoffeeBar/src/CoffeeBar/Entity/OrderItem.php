@@ -28,6 +28,4 @@ class OrderItem
     public function setNumber($number) {
         $this->number = $number;
     }
-
-
 }

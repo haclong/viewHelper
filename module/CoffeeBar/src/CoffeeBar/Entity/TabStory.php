@@ -30,6 +30,24 @@ class TabStory
      */
     protected $eventsLoaded ;
     
+    /**
+     * liste des boissons commandées, non servies
+     * @var orderedItems
+     */
+    protected $outstandingDrinks ;
+    
+    /**
+     * liste des plats commandés, non servis
+     * @var OrderedItems
+     */
+    protected $outstandingFood ;
+    
+    /**
+     *
+     * @var type 
+     */
+    protected $preparedFood ;
+    
     public function __construct()
     {
         $this->eventsCount = 0 ;
@@ -55,5 +73,25 @@ class TabStory
     public function addEvents($event) {
         $this->eventsLoaded[] = $event ;
         $this->eventsCount++ ;
+    }
+    
+    public function addOutstandingDrinks($drinks)
+    {
+        $this->outstandingDrinks = $drinks ;
+    }
+    
+    public function addOutstandingFood($food)
+    {
+        $this->outstandingFood = $food ;
+    }
+    
+    public function isEventLoaded($eventName)
+    {
+        if(in_array($eventName, $this->eventsLoaded))
+        {
+            return TRUE ;
+        } else {
+            return FALSE ;
+        }
     }
 }

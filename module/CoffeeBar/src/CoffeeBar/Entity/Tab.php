@@ -56,6 +56,17 @@ class Tab
     public function setItemsToServe($itemsToServe) {
         $this->itemsToServe = $itemsToServe;
     }
+    
+    public function addItemsToServe($itemsToServe) {
+        foreach($itemsToServe as $item)
+        {
+            $this->itemsToServe->offsetSet(NULL, $item) ;
+        }
+    }
+    
+    public function addItemToServe(TabItem $itemToServe) {
+        $this->itemsToServe->offsetSet(NULL, $itemToServe) ;
+    }
 
     public function setItemsInPreparation($itemsInPreparation) {
         $this->itemsInPreparation = $itemsInPreparation;

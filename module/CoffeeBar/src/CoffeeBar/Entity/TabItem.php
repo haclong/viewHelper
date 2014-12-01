@@ -13,6 +13,13 @@ class TabItem
     protected $menuNumber;
     protected $description;
     protected $price;
+    
+    public function __construct($menuNumber, $description, $price)
+    {
+        $this->setMenuNumber($menuNumber) ;
+        $this->setDescription($description) ;
+        $this->setPrice($price) ;
+    }
 
     public function getMenuNumber() {
         return $this->menuNumber;

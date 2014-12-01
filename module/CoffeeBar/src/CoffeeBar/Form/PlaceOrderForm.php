@@ -12,6 +12,7 @@ use CoffeeBar\Entity\OrderModel;
 use Zend\Form\Element\Csrf;
 use Zend\Form\Form;
 use Zend\Stdlib\Hydrator\ArraySerializable;
+use Zend\Stdlib\Hydrator\ClassMethods;
 
 class PlaceOrderForm extends Form
 {
@@ -39,7 +40,8 @@ class PlaceOrderForm extends Form
         parent::__construct('order') ;
         
         $this->setAttribute('method', 'post')
-             ->setHydrator(new ArraySerializable(false))
+             ->setHydrator(new ArraySerializable())
+//             ->setHydrator(new ClassMethods()) 
              ->setObject(new OrderModel) ;
         
         $this->add(array(

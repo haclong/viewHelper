@@ -21,6 +21,8 @@ class OpenTabs implements ListenerAggregateInterface
     public function attach(EventManagerInterface $events)
     {
         $this->listeners[] = $events->attach('tabOpened', array($this, 'onTabOpened'));
+        $this->listeners[] = $events->attach('drinksOrdered', array($this, 'onDrinksOrdered')) ;
+        $this->listeners[] = $events->attach('foodOrdered', array($this, 'onFoodOrdered')) ;
     }
 
     public function detach(EventManagerInterface $events)
@@ -41,6 +43,19 @@ class OpenTabs implements ListenerAggregateInterface
         return $this->cache ;
     }
     
+    protected function loadTodoByTab()
+    {
+        try {
+            $this->todoByTab = unserialize($this->cache->getItem('openTabs')) ;
+        } catch (MissingKeyException $ex) {
+            echo $ex->getMessage() . ' - openTabs cache key missing' ;
+        }
+    }
+    protected function saveTodoByTab()
+    {
+        $this->cache->setItem('openTabs', serialize($this->todoByTab)) ;
+    }
+    
     protected function setTodoByTab()
     {
         try {
@@ -50,23 +65,65 @@ class OpenTabs implements ListenerAggregateInterface
         }
     }
     
+    /**
+     * Listener to tabOpened event
+     * @param Events $events
+     */
     public function onTabOpened($events)
     {
-        $this->setTodoByTab() ;
+        $this->loadTodoByTab() ;
         $to = $events->getParam('tabOpened') ;
         
         $tab = new Tab($to->getTableNumber(), $to->getWaiter(), new ArrayObject(), new ArrayObject(), new ArrayObject()) ;
         $this->todoByTab->offsetSet($to->getId(), $tab) ;
-        $this->cache->setItem('openTabs', serialize($this->todoByTab)) ;
+        $this->saveTodoByTab() ;
     }
     
+    public function onDrinksOrdered($events)
+    {
+        $drinksOrdered = $events->getParam('drinksOrdered') ;
+
+        $this->loadTodoByTab() ;
+        $tab = $this->getTab($drinksOrdered->getId()) ;
+        
+        foreach($drinksOrdered->getItems() as $drink)
+        {
+            $item = new TabItem($drink->getId(), $drink->getDescription(), $drink->getPrice()) ;
+            $tab->addItemToServe($item) ;
+        }
+        
+        $this->todoByTab->offsetSet($drinksOrdered->getId(), $tab) ;
+        $this->saveTodoByTab() ;
+    }
+
+    /**
+     * Listener add food ordered tab content
+     * @param Events $events
+     */
+    public function onFoodOrdered($events)
+    {
+        $foodOrdered = $events->getParam('foodOrdered') ;
+
+        $this->loadTodoByTab() ;
+        $tab = $this->getTab($foodOrdered->getId()) ;
+        
+        foreach($foodOrdered->getItems() as $food)
+        {
+            $item = new TabItem($food->getId(), $food->getDescription(), $food->getPrice()) ;
+            $tab->addItemToServe($item) ;
+        }
+        
+        $this->todoByTab->offsetSet($foodOrdered->getId(), $tab) ;
+        $this->saveTodoByTab() ;
+    }
+
     /**
      * Retourne la liste des tables servies
      * @return ArrayObject
      */
     public function activeTableNumbers()
     {
-        $this->setTodoByTab() ;
+        $this->loadTodoByTab() ;
         $array = array() ;
         foreach($this->todoByTab->getArrayCopy() as $k => $v)
         {
@@ -83,7 +140,7 @@ class OpenTabs implements ListenerAggregateInterface
      */
     public function tabIdForTable($table)
     {
-        $this->setTodoByTab() ;
+        $this->loadTodoByTab() ;
         foreach($this->todoByTab->getArrayCopy() as $k => $v)
         {
             if($v->getTableNumber() == $table)
@@ -101,7 +158,7 @@ class OpenTabs implements ListenerAggregateInterface
      */
     public function tabForTable($table)
     {
-        $this->setTodoByTab() ;
+        $this->loadTodoByTab() ;
         foreach($this->todoByTab->getArrayCopy() as $k => $v)
         {
             if($v->getTableNumber() == $table)
@@ -132,11 +189,16 @@ class OpenTabs implements ListenerAggregateInterface
             return FALSE ;
         }
     }
+    
+    protected function getTab($guid)
+    {
+        $this->loadTodoByTab() ;
+        $tabs = $this->todoByTab->getArrayCopy() ;
+        return $tabs[$guid] ;
+    }
 }
 
 //    public class OpenTabs : IOpenTabQueries,
-//        ISubscribeTo<DrinksOrdered>,
-//        ISubscribeTo<FoodOrdered>,
 //        ISubscribeTo<FoodPrepared>,
 //        ISubscribeTo<DrinksServed>,
 //        ISubscribeTo<FoodServed>,
@@ -173,18 +235,6 @@ class OpenTabs implements ListenerAggregateInterface
 //                };
 //        }
 //
-//        public void Handle(DrinksOrdered e)
-//        {
-//            AddItems(e.Id,
-//                e.Items.Select(drink => new TabItem
-//                    {
-//                        MenuNumber = drink.MenuNumber,
-//                        Description = drink.Description,
-//                        Price = drink.Price
-//                    }),
-//                t => t.ToServe);
-//        }
-//
 //        public void Handle(FoodOrdered e)
 //        {
 //            AddItems(e.Id,
@@ -216,12 +266,6 @@ class OpenTabs implements ListenerAggregateInterface
 //        {
 //            lock (todoByTab)
 //                todoByTab.Remove(e.Id);
-//        }
-//
-//        private Tab getTab(Guid id)
-//        {
-//            lock (todoByTab)
-//                return todoByTab[id];
 //        }
 //
 //        private void AddItems(Guid tabId, IEnumerable<TabItem> newItems, Func<Tab, List<TabItem>> to)
