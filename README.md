@@ -1,4 +1,4 @@
-coffeebar
+Coffeebar
 =========
 
 A small module experimenting how to use event manager to build an application
@@ -19,9 +19,18 @@ Rules are simple :
 * Drinks can __be served__ but foods have to __be prepared__ before __being served__.
 * Tab will __be closed__ once the __invoice has been paid__.
 
-The whole things is articulate around "commands" and "events". Command is __doing thing__ and Event is __thing being done__. So basically, for one command, there's one event. 
+Waiters have to :
+* track the active tabs
+* serve the drinks 
+* serve the food
+* take the invoice once every items has been served
+* close the tab
 
-Listeners will listen either to commands or to events. 
+Cook has to :
+* prepare the food
+* mark the food prepared so it can be served
+
+The whole things is articulate around "commands" and "events". Command is __doing thing__ and Event is __thing being done__. So basically, for one command, there's one event. Listeners will listen either to commands or to events. 
 
 The translation
 =======
