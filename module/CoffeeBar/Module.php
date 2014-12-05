@@ -11,6 +11,8 @@ namespace CoffeeBar;
 
 use CoffeeBar\Command\OpenTab;
 use CoffeeBar\Command\PlaceOrder;
+use CoffeeBar\Command\MarkDrinksServed;
+use CoffeeBar\Command\MarkFoodServed;
 use CoffeeBar\Entity\OpenTabs;
 use CoffeeBar\Entity\TodoByTab;
 use CoffeeBar\Event\TabAggregate;
@@ -97,10 +99,22 @@ class Module implements FormElementProviderInterface
                     return $openTab ;
                 },
                 'PlaceOrderCommand' => function($sm) {
-                    $tab = $sm->get('TabEventManager') ;
+                    $events = $sm->get('TabEventManager') ;
                     $placeOrder = new PlaceOrder() ;
-                    $placeOrder->setEventManager($tab) ;
+                    $placeOrder->setEventManager($events) ;
                     return $placeOrder ;
+                },
+                'MarkDrinksServedCommand' => function($sm) {
+                    $events = $sm->get('TabEventManager') ;
+                    $markDrinksServed = new MarkDrinksServed() ;
+                    $markDrinksServed->setEventManager($events) ;
+                    return $markDrinksServed ;
+                },
+                'MarkFoodServedCommand' => function($sm) {
+                    $events = $sm->get('TabEventManager') ;
+                    $markFoodServed = new MarkFoodServed() ;
+                    $markFoodServed->setEventManager($events) ;
+                    return $markFoodServed ;
                 },
                 'TabAggregate' => function($sm) {
                     $events = $sm->get('TabEventManager') ;

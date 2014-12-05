@@ -8,6 +8,8 @@
 
 namespace CoffeeBar\Event ;
 
+use DateTime;
+
 class TabOpened
 {
     /**
@@ -25,6 +27,12 @@ class TabOpened
      */
     protected $waiter ;
     
+    /**
+     *
+     * @var DateTime
+     */
+    protected $date ;
+
     public function getId() {
         return $this->id;
     }
@@ -47,5 +55,13 @@ class TabOpened
 
     public function setWaiter($waiter) {
         $this->waiter = $waiter;
+    }
+
+    public function getDate() {
+        return $this->date;
+    }
+
+    public function setDate(DateTime $date) {
+        $this->date = $date;
     }
 }

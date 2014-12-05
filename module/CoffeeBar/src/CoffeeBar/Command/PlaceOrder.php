@@ -8,7 +8,7 @@
 
 namespace CoffeeBar\Command ;
 
-use ArrayObject;
+use DateTime;
 use Zend\EventManager\EventManagerAwareInterface;
 use Zend\EventManager\EventManagerInterface;
 
@@ -17,6 +17,7 @@ class PlaceOrder implements EventManagerAwareInterface
     protected $id ; // int
     protected $items ; // ArrayObject
     protected $events ;
+    protected $date ; // DateTime
     
     function getId() {
         return $this->id;
@@ -34,10 +35,19 @@ class PlaceOrder implements EventManagerAwareInterface
         $this->items = $items ;
     }
     
+    public function getDate() {
+        return $this->date;
+    }
+
+    public function setDate(DateTime $date) {
+        $this->date = $date;
+    }
+
     public function placeOrder($id, $items)
     {
         $this->setId($id) ;
         $this->setItems($items) ;
+        $this->setDate(new DateTime()) ;
         $this->events->trigger('placeOrder', '', array('placeOrder' => $this)) ;
     }
 
@@ -50,5 +60,9 @@ class PlaceOrder implements EventManagerAwareInterface
     public function getEventManager()
     {
         return $this->events;
+    }
+    
+    public function __sleep() {
+        return array('id', 'date', 'items');
     }
 }

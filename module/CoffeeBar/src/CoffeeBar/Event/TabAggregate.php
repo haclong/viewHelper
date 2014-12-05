@@ -11,7 +11,10 @@ namespace CoffeeBar\Event ;
 use CoffeeBar\Command\PlaceOrder;
 use CoffeeBar\Entity\TabStory;
 use CoffeeBar\Event\TabOpened;
+use CoffeeBar\Exception\DrinksNotOutstanding;
+use CoffeeBar\Exception\FoodNotOutstanding;
 use CoffeeBar\Exception\TabNotOpen;
+use DateTime;
 use Zend\EventManager\EventManagerInterface;
 use Zend\EventManager\ListenerAggregateInterface;
 
@@ -41,6 +44,8 @@ class TabAggregate implements ListenerAggregateInterface
         $this->listeners[] = $events->attach('placeOrder', array($this, 'onPlaceOrder')) ;
         $this->listeners[] = $events->attach('drinksOrdered', array($this, 'onDrinksOrdered')) ;
         $this->listeners[] = $events->attach('foodOrdered', array($this, 'onFoodOrdered')) ;
+        $this->listeners[] = $events->attach('markDrinksServed', array($this, 'onMarkDrinksServed')) ;
+        $this->listeners[] = $events->attach('markFoodServed', array($this, 'onMarkFoodServed')) ;
     }
 
     public function detach(EventManagerInterface $events)
@@ -98,14 +103,14 @@ class TabAggregate implements ListenerAggregateInterface
         $openTab = $events->getParam('openTab') ;
         
         $story = $this->loadStory($openTab->getId()) ;
-        $story->addEvents('openTab') ;
+        $story->addEvents($openTab) ;
         $this->saveStory($openTab->getId(), $story) ;
-
-        $this->setId($openTab->getId()) ;
+//        $this->setId($openTab->getId()) ;
         $openedTab = new TabOpened() ;
         $openedTab->setId($openTab->getId()) ;
         $openedTab->setTableNumber($openTab->getTableNumber()) ;
         $openedTab->setWaiter($openTab->getWaiter()) ;
+        $openedTab->setDate(new DateTime()) ;
 
         $this->events->trigger('tabOpened', $this, array('tabOpened' => $openedTab)) ;
     }
@@ -114,7 +119,7 @@ class TabAggregate implements ListenerAggregateInterface
     {
         $tabOpened = $events->getParam('tabOpened') ;
         $story = $this->loadStory($tabOpened->getId()) ;
-        $story->addEvents('tabOpened') ;
+        $story->addEvents($tabOpened) ;
         $this->saveStory($tabOpened->getId(), $story) ;
 
         $this->open = true ;
@@ -125,7 +130,7 @@ class TabAggregate implements ListenerAggregateInterface
         $placeOrder = $events->getParam('placeOrder') ;
 
         $story = $this->loadStory($placeOrder->getId()) ;
-        $story->addEvents('placeOrder') ;
+        $story->addEvents($placeOrder) ;
         $this->saveStory($placeOrder->getId(), $story) ;
  
         if(!$this->isTabOpened($placeOrder->getId()))
@@ -142,7 +147,7 @@ class TabAggregate implements ListenerAggregateInterface
         $drinksOrdered = $events->getParam('drinksOrdered') ;
         
         $story = $this->loadStory($drinksOrdered->getId()) ;
-        $story->addEvents('drinksOrdered') ;
+        $story->addEvents($drinksOrdered) ;
         $story->addOutstandingDrinks($drinksOrdered->getItems()) ;
         $this->saveStory($drinksOrdered->getId(), $story) ;
     }
@@ -152,15 +157,57 @@ class TabAggregate implements ListenerAggregateInterface
         $foodOrdered = $events->getParam('foodOrdered') ;
         
         $story = $this->loadStory($foodOrdered->getId()) ;
-        $story->addEvents('foodOrdered') ;
+        $story->addEvents($foodOrdered) ;
         $story->addOutstandingFood($foodOrdered->getItems()) ;
         $this->saveStory($foodOrdered->getId(), $story) ;
+    }
+    
+    public function onMarkDrinksServed($events)
+    {
+        $markDrinksServed = $events->getParam('markDrinksServed') ;
+        
+        $story = $this->loadStory($markDrinksServed->getId()) ;
+        $story->addEvents($markDrinksServed) ;
+        $this->saveStory($markDrinksServed->getId(), $story) ;
+
+        if(!$story->areDrinksOutstanding($markDrinksServed->getDrinks()))
+        {
+            throw new DrinksNotOutstanding() ;
+        }
+        
+        $drinksServed = new DrinksServed() ;
+//        $drinksServed->setId($markDrinksServed->getId()) ;
+//        $drinksServed->setDrinks($markDrinksServed->getDrinks()) ;
+//        $drinksServed->setDate(new DateTime()) ;
+
+        $this->events->trigger('drinksServed', $this, array('drinksServed' => $drinksServed)) ;
+    }
+
+    public function onMarkFoodServed($events)
+    {
+        $markFoodServed = $events->getParam('markFoodServed') ;
+        
+        $story = $this->loadStory($markFoodServed->getId()) ;
+        $story->addEvents($markFoodServed) ;
+        $this->saveStory($markFoodServed->getId(), $story) ;
+
+        if(!$story->isFoodOutstanding($markFoodServed->getFood()))
+        {
+            throw new FoodNotOutstanding() ;
+        }
+        
+        $foodServed = new FoodServed() ;
+//        $foodServed->setId($markFoodServed->getId()) ;
+//        $foodServed->setDrinks($markFoodServed->getFood()) ;
+//        $foodServed->setDate(new DateTime()) ;
+
+        $this->events->trigger('foodServed', $this, array('foodServed' => $foodServed)) ;
     }
     
     protected function isTabOpened($id)
     {
         $story = $this->loadStory($id) ;
-        return $story->isEventLoaded('tabOpened') ;
+        return $story->isEventLoaded('CoffeeBar\Event\TabOpened') ;
     }
     
     protected function orderDrink(PlaceOrder $order)
@@ -171,6 +218,7 @@ class TabAggregate implements ListenerAggregateInterface
             $orderedDrinks = new DrinksOrdered() ;
             $orderedDrinks->setId($order->getId()) ;
             $orderedDrinks->setItems($drinks) ;
+            $orderedDrinks->setDate(new DateTime()) ;
             $this->events->trigger('drinksOrdered', $this, array('drinksOrdered' => $orderedDrinks)) ;
         }
     }
@@ -183,6 +231,7 @@ class TabAggregate implements ListenerAggregateInterface
             $orderedFoods = new FoodOrdered() ;
             $orderedFoods->setId($order->getId()) ;
             $orderedFoods->setItems($foods) ;
+            $orderedFoods->setDate(new DateTime()) ;
             $this->events->trigger('foodOrdered', $this, array('foodOrdered' => $orderedFoods)) ;
         }
     }

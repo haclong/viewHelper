@@ -15,3 +15,5 @@ vendor/bin
 /vendor/behat/
 /vendor/guzzlehttp/
 /vendor/mvlabs/
+/module/CoffeeBar/src/CoffeeBar/Features/
+/data/cache/

@@ -92,6 +92,16 @@ return array(
                                     ),
                                 ),
                             ),
+                            'markserved' => array(
+                                'type' => 'Literal',
+                                'options' => array(
+                                    'route' => '/markserved',
+                                    'defaults' => array(
+                                        'controller'    => 'CoffeeBarController\Tab',
+                                        'action'        => 'served',
+                                    ),
+                                ),
+                            ),
                         ),
                     ),
                     'staff' => array(

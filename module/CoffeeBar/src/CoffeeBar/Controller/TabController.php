@@ -46,7 +46,7 @@ class TabController extends AbstractActionController
                 $placeOrder = $this->serviceLocator->get('PlaceOrderCommand') ;
                 $items = $this->assignOrderedItems($orderModel) ;
                 $placeOrder->placeOrder($openTabs->tabIdForTable($tableNumber), $items) ;
-//                return $this->redirect()->toRoute('tab/status', array('id' => $tableNumber));
+                return $this->redirect()->toRoute('tab/status', array('id' => $tableNumber));
             }
         } else {
             return $this->redirect()->toRoute('tab/open');
@@ -75,6 +75,19 @@ class TabController extends AbstractActionController
         return array('result' => $status) ;
     }
     
+    public function servedAction()
+    {
+        $request = $this->getRequest() ;    
+        if($request->isPost()) {
+            $menuNumbers = $this->extractMenuNumber($request->getPost()->get('served')) ;
+            $id = $request->getPost()->get('tableNumber') ;
+
+            $this->markDrinksServed($id, $menuNumbers) ;
+            $this->markFoodServed($id, $menuNumbers) ;
+        }
+        return $this->redirect()->toRoute('tab/status', array('id' => $id)) ;
+    }
+    
     protected function assignOrderedItems(OrderModel $model)
     {
         $items = $this->serviceLocator->get('OrderedItems') ;
@@ -92,5 +105,54 @@ class TabController extends AbstractActionController
             }
         }
         return $items ;
+    }
+    
+    protected function extractMenuNumber(array $markServedItems)
+    {
+        $array = array() ;
+        foreach($markServedItems as $value)
+        {
+            $groups = explode('_', $value) ;
+            $array[] = $groups[2] ;
+        }
+        return $array ;
+    }
+    
+    protected function markDrinksServed($id, array $menuNumbers)
+    {
+        $menu = $this->serviceLocator->get('CoffeeBarEntity\MenuItems') ;
+        $openTabs = $this->serviceLocator->get('OpenTabs') ;
+        $tabId = $openTabs->tabIdForTable($id) ;
+        
+        $drinks = array() ;
+        foreach($menuNumbers as $nb)
+        {
+            if($menu->getById($nb)->getIsDrink())
+            {
+                $drinks[] = $nb ; 
+            }
+        }
+        
+        $markServed = $this->serviceLocator->get('MarkDrinksServedCommand') ;
+        $markServed->markServed($tabId, $drinks) ;
+    }
+    
+    protected function markFoodServed($id, array $menuNumbers)
+    {
+        $menu = $this->serviceLocator->get('CoffeeBarEntity\MenuItems') ;
+        $openTabs = $this->serviceLocator->get('OpenTabs') ;
+        $tabId = $openTabs->tabIdForTable($id) ;
+        
+        $food = array() ;
+        foreach($menuNumbers as $nb)
+        {
+            if(!$menu->getById($nb)->getIsDrink())
+            {
+                $food[] = $nb ; 
+            }
+        }
+        
+        $markServed = $this->serviceLocator->get('MarkFoodServedCommand') ;
+        $markServed->markServed($tabId, $food) ;
     }
 }

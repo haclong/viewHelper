@@ -9,11 +9,13 @@
 namespace CoffeeBar\Event ;
 
 use CoffeeBar\Entity\OrderedItems;
+use DateTime;
 
 class DrinksOrdered
 {
     protected $id ; // guid
     protected $items ; // OrderedItems
+    protected $date ; // DateTime
     
     function getId() {
         return $this->id;
@@ -31,5 +33,11 @@ class DrinksOrdered
         $this->items = $items;
     }
 
-    
+    public function getDate() {
+        return $this->date;
+    }
+
+    public function setDate(DateTime $date) {
+        $this->date = $date;
+    }
 }

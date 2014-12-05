@@ -52,6 +52,8 @@ class TabStory
     {
         $this->eventsCount = 0 ;
         $this->eventsLoaded = array() ;
+        $this->outstandingDrinks = new OrderedItems() ;
+        $this->outstandingFood = new OrderedItems() ;
     }
 
     public function getId() {
@@ -71,27 +73,84 @@ class TabStory
     }
 
     public function addEvents($event) {
-        $this->eventsLoaded[] = $event ;
+        $this->eventsLoaded[get_class($event)] = $event ;
         $this->eventsCount++ ;
     }
     
+    public function getOutstandingDrinks() {
+        return $this->outstandingDrinks;
+    }
+
+    public function getOutstandingFood() {
+        return $this->outstandingFood;
+    }
+
+    public function getPreparedFood() {
+        return $this->preparedFood;
+    }
+
     public function addOutstandingDrinks($drinks)
     {
-        $this->outstandingDrinks = $drinks ;
+        foreach($drinks as $drink)
+        {
+            $this->outstandingDrinks->offsetSet(NULL, $drink) ;
+        }
     }
-    
+
     public function addOutstandingFood($food)
     {
-        $this->outstandingFood = $food ;
+        foreach($food as $item)
+        {
+            $this->outstandingFood->offsetSet(NULL, $item) ;
+        }
     }
     
     public function isEventLoaded($eventName)
     {
-        if(in_array($eventName, $this->eventsLoaded))
+        if(array_key_exists($eventName, $this->eventsLoaded))
         {
             return TRUE ;
         } else {
             return FALSE ;
         }
+    }
+    
+    public function areDrinksOutstanding(array $menuNumbers)
+    {
+        return $this->areAllInList($menuNumbers, $this->outstandingDrinks) ;
+    }
+    
+    public function isFoodOutstanding(array $menuNumbers)
+    {
+        return $this->areAllInList($menuNumbers, $this->outstandingFood) ;
+    }
+    
+    public function isFoodPrepared(array $menuNumbers)
+    {
+        return $this->areAllInList($menuNumbers, $this->preparedFood) ;
+    }
+    
+    protected function areAllInList(array $want, OrderedItems $have)
+    {
+        $currentHave = $this->getOrderedItemsId($have) ;
+        foreach($want as $item)
+        {
+            if(($key = array_search($item, $currentHave)) !== false) {
+                unset($currentHave[$key]);
+            } else {
+                return false ;
+            }
+        }
+        return true ;
+    }
+
+    protected function getOrderedItemsId(OrderedItems $items)
+    {
+        $array = array() ;
+        foreach($items as $item)
+        {
+            $array[] = $item->getId() ;
+        }
+        return $array ;
     }
 }

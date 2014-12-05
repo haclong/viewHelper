@@ -9,6 +9,7 @@
 namespace CoffeeBar\Command ;
 
 use CoffeeBar\Exception\TabAlreadyOpened;
+use DateTime;
 use Zend\EventManager\EventManagerAwareInterface;
 use Zend\EventManager\EventManagerInterface;
 
@@ -30,6 +31,12 @@ class OpenTab implements EventManagerAwareInterface
     protected $waiter ;
     
     protected $events ;
+    
+    /**
+     *
+     * @var DateTime
+     */
+    protected $date ;
     
     public function getId() {
         return $this->id;
@@ -55,6 +62,14 @@ class OpenTab implements EventManagerAwareInterface
         $this->waiter = $waiter;
     }
     
+    public function getDate() {
+        return $this->date;
+    }
+
+    public function setDate(DateTime $date) {
+        $this->date = $date;
+    }
+
     public function setOpenTabs($openTabs)
     {
         $this->openTabs = $openTabs ;
@@ -64,6 +79,7 @@ class OpenTab implements EventManagerAwareInterface
         $this->id = (isset($data['id'])) ? $data['id'] : null;
         $this->tableNumber = (isset($data['tableNumber'])) ? $data['tableNumber'] : null;
         $this->waiter = (isset($data['waiter'])) ? $data['waiter'] : null; 
+        $this->date = new DateTime() ;
         
         if($this->openTabs->isTableActive($this->tableNumber))
         {
@@ -77,7 +93,8 @@ class OpenTab implements EventManagerAwareInterface
         return array(
             'id' => $this->id, 
             'tableNumber' => $this->tableNumber, 
-            'waiter' => $this->waiter
+            'waiter' => $this->waiter,
+            'date' => $this->date,
                 ) ;
     }
 
@@ -90,5 +107,10 @@ class OpenTab implements EventManagerAwareInterface
     public function getEventManager()
     {
         return $this->events;
+    }
+    
+    public function __sleep()
+    {
+        return array('id', 'waiter', 'tableNumber', 'date') ;
     }
 }
