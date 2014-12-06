@@ -13,6 +13,7 @@ use CoffeeBar\Entity\TabStory;
 use CoffeeBar\Event\TabOpened;
 use CoffeeBar\Exception\DrinksNotOutstanding;
 use CoffeeBar\Exception\FoodNotOutstanding;
+use CoffeeBar\Exception\FoodNotPrepared;
 use CoffeeBar\Exception\TabNotOpen;
 use DateTime;
 use Zend\EventManager\EventManagerInterface;
@@ -24,7 +25,7 @@ class TabAggregate implements ListenerAggregateInterface
     protected $events ;
     protected $id ;
     protected $cache ;
-    protected $tabs ;
+//    protected $tabs ;
 
     public function setEventManager(EventManagerInterface $events)
     {
@@ -45,6 +46,8 @@ class TabAggregate implements ListenerAggregateInterface
         $this->listeners[] = $events->attach('drinksOrdered', array($this, 'onDrinksOrdered')) ;
         $this->listeners[] = $events->attach('foodOrdered', array($this, 'onFoodOrdered')) ;
         $this->listeners[] = $events->attach('markDrinksServed', array($this, 'onMarkDrinksServed')) ;
+        $this->listeners[] = $events->attach('drinksServed', array($this, 'onDrinksServed')) ;
+        $this->listeners[] = $events->attach('markFoodPrepared', array($this, 'onMarkFoodPrepared')) ;
         $this->listeners[] = $events->attach('markFoodServed', array($this, 'onMarkFoodServed')) ;
     }
 
@@ -172,15 +175,76 @@ class TabAggregate implements ListenerAggregateInterface
 
         if(!$story->areDrinksOutstanding($markDrinksServed->getDrinks()))
         {
-            throw new DrinksNotOutstanding() ;
+            throw new DrinksNotOutstanding('une ou plusieurs boissons ne font pas parties de la commande') ;
         }
         
         $drinksServed = new DrinksServed() ;
-//        $drinksServed->setId($markDrinksServed->getId()) ;
-//        $drinksServed->setDrinks($markDrinksServed->getDrinks()) ;
-//        $drinksServed->setDate(new DateTime()) ;
+        $drinksServed->setId($markDrinksServed->getId()) ;
+        $drinksServed->setDrinks($markDrinksServed->getDrinks()) ;
+        $drinksServed->setDate(new DateTime()) ;
 
         $this->events->trigger('drinksServed', $this, array('drinksServed' => $drinksServed)) ;
+    }
+
+    public function onDrinksServed($events)
+    {
+        $drinksServed = $events->getParam('drinksServed') ;
+        
+        $story = $this->loadStory($drinksServed->getId()) ;
+        $story->addEvents($drinksServed) ;
+        foreach($drinksServed->getDrinks() as $drink)
+        {
+            $key = $story->getOutstandingDrinks()->getKeyById($drink) ;
+            if($key !== null)
+            {
+                $price = $story->getOutstandingDrinks()->offsetGet($key)->getPrice() ;
+                $story->addValue($price) ;
+                $story->getOutstandingDrinks()->offsetUnset($key) ;
+            }
+        }
+        $this->saveStory($drinksServed->getId(), $story) ;
+    }
+
+    public function onMarkFoodPrepared($events)
+    {
+        $markFoodPrepared = $events->getParam('markFoodPrepared') ;
+        
+        $story = $this->loadStory($markFoodPrepared->getId()) ;
+        $story->addEvents($markFoodPrepared) ;
+        $this->saveStory($markFoodPrepared->getId(), $story) ;
+
+        if(!$story->isFoodOutstanding($markFoodPrepared->getFood()))
+        {
+            throw new FoodNotOutstanding('un ou plusieurs plats n\'ont pas été commandés') ;
+        }
+        
+        $foodPrepared = new FoodPrepared() ;
+        $foodPrepared->setId($markFoodPrepared->getId()) ;
+        $foodPrepared->setFood($markFoodPrepared->getFood()) ;
+        $foodPrepared->setDate(new DateTime()) ;
+
+        $this->events->trigger('foodPrepared', $this, array('foodPrepared' => $foodPrepared)) ;
+    }
+
+    public function onFoodPrepared($events)
+    {
+        $foodPrepared = $events->getParam('foodPrepared') ; 
+        
+        $story = $this->loadStory($foodPrepared->getId()) ;
+        $story->addEvents($foodPrepared) ;
+        
+        foreach($foodPrepared->getFood() as $food)
+        {
+            $key = $story->getOutstandingFood()->getKeyById($food) ;
+            
+            if($key !== null)
+            {
+                $value = $story->getOutstandingFood()->offsetGet($key) ;
+                $story->getOutstandingFood()->offsetUnset($key) ;
+                $story->getPreparedFood()->offsetSet(NULL, $value) ;
+            }
+        }
+        $this->saveStory($foodPrepared->getId(), $story) ;
     }
 
     public function onMarkFoodServed($events)
@@ -191,19 +255,40 @@ class TabAggregate implements ListenerAggregateInterface
         $story->addEvents($markFoodServed) ;
         $this->saveStory($markFoodServed->getId(), $story) ;
 
-        if(!$story->isFoodOutstanding($markFoodServed->getFood()))
+        if(!$story->isFoodPrepared($markFoodServed->getFood()))
         {
-            throw new FoodNotOutstanding() ;
+            throw new FoodNotPrepared('les plats ne sont pas encore prêts') ;
         }
         
         $foodServed = new FoodServed() ;
-//        $foodServed->setId($markFoodServed->getId()) ;
-//        $foodServed->setDrinks($markFoodServed->getFood()) ;
-//        $foodServed->setDate(new DateTime()) ;
+        $foodServed->setId($markFoodServed->getId()) ;
+        $foodServed->setFood($markFoodServed->getFood()) ;
+        $foodServed->setDate(new DateTime()) ;
 
         $this->events->trigger('foodServed', $this, array('foodServed' => $foodServed)) ;
     }
-    
+
+    public function onFoodServed($events)
+    {
+        $foodServed = $events->getParam('foodServed') ; 
+        
+        $story = $this->loadStory($foodServed->getId()) ;
+        $story->addEvents($foodServed) ;
+        
+        foreach($foodServed->getFood() as $food)
+        {
+            $key = $story->getOutstandingFood()->getKeyById($food) ;
+            
+            if($key !== null)
+            {
+                $price = $story->getPreparedFood()->offsetGet($key)->getPrice() ;
+                $story->addValue($price) ;
+                $story->getPreparedFood()->offsetUnset($key) ;
+            }
+        }
+        $this->saveStory($foodPrepared->getId(), $story) ;
+    }
+
     protected function isTabOpened($id)
     {
         $story = $this->loadStory($id) ;

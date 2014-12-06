@@ -39,4 +39,16 @@ class OrderedItems extends ArrayObject
         }
         return $items ;
     }
+    
+    public function getKeyById($id)
+    {
+        $iterator = $this->getIterator() ;
+        
+        foreach($iterator as $key => $value)
+        {
+            if($value->getId() == $id) {
+                return $key ;
+            }
+        }
+    }
 }

@@ -104,6 +104,16 @@ return array(
                             ),
                         ),
                     ),
+                    'flush' => array(
+                        'type' => 'Literal',
+                        'options' => array(
+                            'route' => '/flush',
+                            'defaults' => array(
+                                'controller'  => 'CoffeeBarController\Index',
+                                'action'      => 'flush',
+                            ),
+                        ),
+                    ),
                     'staff' => array(
                         'type' => 'Literal',
                         'options' => array(
@@ -189,6 +199,10 @@ return array(
             array(
                 'label' => 'Chef\'s todo',
                 'route' => 'staff/cook',
+            ),
+            array(
+                'label' => 'Flush cache',
+                'route' => 'flush',
             ),
         ),
     ),

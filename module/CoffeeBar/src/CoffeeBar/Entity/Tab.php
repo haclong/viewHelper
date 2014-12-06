@@ -16,7 +16,7 @@ class Tab
     protected $itemsInPreparation;
     protected $itemsServed;
     
-    public function __construct($tableNumber, $waiter, $itemsToServe, $itemsInPreparation, $itemsServed)
+    public function __construct($tableNumber, $waiter, ItemsArray $itemsToServe, ItemsArray $itemsInPreparation, ItemsArray $itemsServed)
     {
         $this->setTableNumber($tableNumber) ;
         $this->setWaiter($waiter) ;
@@ -52,26 +52,17 @@ class Tab
     public function setWaiter($waiter) {
         $this->waiter = $waiter;
     }
-
-    public function setItemsToServe($itemsToServe) {
-        $this->itemsToServe = $itemsToServe;
+    
+    public function setItemsToServe($itemsToServe)
+    {
+        $this->itemsToServe = $itemsToServe ;
     }
     
-    public function addItemsToServe($itemsToServe) {
-        foreach($itemsToServe as $item)
-        {
-            $this->itemsToServe->offsetSet(NULL, $item) ;
-        }
+    public function setItemsInPreparation($itemsInPreparation)
+    {
+        $this->itemsInPreparation = $itemsInPreparation ;
     }
     
-    public function addItemToServe(TabItem $itemToServe) {
-        $this->itemsToServe->offsetSet(NULL, $itemToServe) ;
-    }
-
-    public function setItemsInPreparation($itemsInPreparation) {
-        $this->itemsInPreparation = $itemsInPreparation;
-    }
-
     public function setItemsServed($itemsServed) {
         $this->itemsServed = $itemsServed;
     }

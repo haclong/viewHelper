@@ -85,7 +85,7 @@ class TabController extends AbstractActionController
             $this->markDrinksServed($id, $menuNumbers) ;
             $this->markFoodServed($id, $menuNumbers) ;
         }
-        return $this->redirect()->toRoute('tab/status', array('id' => $id)) ;
+//        return $this->redirect()->toRoute('tab/status', array('id' => $id)) ;
     }
     
     protected function assignOrderedItems(OrderModel $model)
@@ -133,8 +133,11 @@ class TabController extends AbstractActionController
             }
         }
         
-        $markServed = $this->serviceLocator->get('MarkDrinksServedCommand') ;
-        $markServed->markServed($tabId, $drinks) ;
+        if(!empty($drinks))
+        {
+            $markServed = $this->serviceLocator->get('MarkDrinksServedCommand') ;
+            $markServed->markServed($tabId, $drinks) ;
+        }
     }
     
     protected function markFoodServed($id, array $menuNumbers)
@@ -151,8 +154,11 @@ class TabController extends AbstractActionController
                 $food[] = $nb ; 
             }
         }
-        
-        $markServed = $this->serviceLocator->get('MarkFoodServedCommand') ;
-        $markServed->markServed($tabId, $food) ;
+
+        if(!empty($food))
+        {
+            $markServed = $this->serviceLocator->get('MarkFoodServedCommand') ;
+            $markServed->markServed($tabId, $food) ;
+        }
     }
 }

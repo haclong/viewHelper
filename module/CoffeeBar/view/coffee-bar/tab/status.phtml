@@ -1,17 +1,14 @@
 <h1>Tab status</h1>
 
 <h2>Table #<?php echo $result->getTableNumber(); ?></h2>
-<?php
-
-var_dump($result) ;
-
-?>
 
 <div><a href="<?php echo $this->url('tab/order', array('id' => $result->getTableNumber())) ;?>">Order Food/Drink</a></div>
 
 <h3>Items to serve</h3>
 
 <?php
+//var_dump($result) ;
+
 if(count($result->getItemsToServe()) == 0)
 {
     echo 'Pas de commande en cours' ;

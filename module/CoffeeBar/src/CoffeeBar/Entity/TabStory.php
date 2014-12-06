@@ -44,9 +44,15 @@ class TabStory
     
     /**
      *
-     * @var type 
+     * @var OrderedItems
      */
     protected $preparedFood ;
+    
+    /**
+     *
+     * @var float ;
+     */
+    protected $itemsServedValue ;
     
     public function __construct()
     {
@@ -54,6 +60,22 @@ class TabStory
         $this->eventsLoaded = array() ;
         $this->outstandingDrinks = new OrderedItems() ;
         $this->outstandingFood = new OrderedItems() ;
+        $this->preparedFood = new OrderedItems() ;
+        $this->itemsServedValue = 0 ;
+    }
+
+    public function getItemsServedValue() {
+        return $this->itemsServedValue;
+    }
+
+    public function setItemsServedValue($itemsServedValue) {
+        $this->itemsServedValue = $itemsServedValue;
+    }
+    
+    public function addValue($value)
+    {
+        $this->itemsServedValue += $value ;
+        return $this->itemsServedValue ;
     }
 
     public function getId() {
@@ -73,7 +95,7 @@ class TabStory
     }
 
     public function addEvents($event) {
-        $this->eventsLoaded[get_class($event)] = $event ;
+        $this->eventsLoaded[] = $event ;
         $this->eventsCount++ ;
     }
     
@@ -105,14 +127,24 @@ class TabStory
         }
     }
     
+    public function addPreparedFood($food)
+    {
+        foreach($food as $item)
+        {
+            $this->preparedFood->offsetSet(NULL, $item) ;
+        }
+    }
+
     public function isEventLoaded($eventName)
     {
-        if(array_key_exists($eventName, $this->eventsLoaded))
+        foreach($this->eventsLoaded as $value)
         {
-            return TRUE ;
-        } else {
-            return FALSE ;
+            if($value instanceof $eventName)
+            {
+                return TRUE ;
+            } 
         }
+        return FALSE ;
     }
     
     public function areDrinksOutstanding(array $menuNumbers)

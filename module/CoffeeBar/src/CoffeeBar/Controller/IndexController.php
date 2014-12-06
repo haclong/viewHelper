@@ -11,4 +11,11 @@ class IndexController extends AbstractActionController
         $cache = $this->serviceLocator->get('Cache\Persistence');
         return array('result' => $cache) ;
     }
+    
+    public function flushAction()
+    {
+        $cache = $this->serviceLocator->get('Cache\Persistence') ;
+        $cache->flush() ;
+        return $this->redirect()->toRoute('home') ;
+    }
 }

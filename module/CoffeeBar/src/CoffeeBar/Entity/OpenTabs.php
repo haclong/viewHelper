@@ -8,7 +8,7 @@
 
 namespace CoffeeBar\Entity ;
 
-use \ArrayObject;
+use ArrayObject;
 use Zend\EventManager\EventManagerInterface;
 use Zend\EventManager\ListenerAggregateInterface;
 
@@ -23,6 +23,9 @@ class OpenTabs implements ListenerAggregateInterface
         $this->listeners[] = $events->attach('tabOpened', array($this, 'onTabOpened'));
         $this->listeners[] = $events->attach('drinksOrdered', array($this, 'onDrinksOrdered')) ;
         $this->listeners[] = $events->attach('foodOrdered', array($this, 'onFoodOrdered')) ;
+        $this->listeners[] = $events->attach('foodPrepared', array($this, 'onFoodPrepared')) ;
+        $this->listeners[] = $events->attach('drinksServed', array($this, 'onDrinksServed')) ;
+        $this->listeners[] = $events->attach('foodServed', array($this, 'onFoodServed')) ;
     }
 
     public function detach(EventManagerInterface $events)
@@ -74,7 +77,7 @@ class OpenTabs implements ListenerAggregateInterface
         $this->loadTodoByTab() ;
         $to = $events->getParam('tabOpened') ;
         
-        $tab = new Tab($to->getTableNumber(), $to->getWaiter(), new ArrayObject(), new ArrayObject(), new ArrayObject()) ;
+        $tab = new Tab($to->getTableNumber(), $to->getWaiter(), new ItemsArray(), new ItemsArray(), new ItemsArray()) ;
         $this->todoByTab->offsetSet($to->getId(), $tab) ;
         $this->saveTodoByTab() ;
     }
@@ -89,7 +92,7 @@ class OpenTabs implements ListenerAggregateInterface
         foreach($drinksOrdered->getItems() as $drink)
         {
             $item = new TabItem($drink->getId(), $drink->getDescription(), $drink->getPrice()) ;
-            $tab->addItemToServe($item) ;
+            $tab->getItemsToServe()->addItem($item) ;
         }
         
         $this->todoByTab->offsetSet($drinksOrdered->getId(), $tab) ;
@@ -110,10 +113,85 @@ class OpenTabs implements ListenerAggregateInterface
         foreach($foodOrdered->getItems() as $food)
         {
             $item = new TabItem($food->getId(), $food->getDescription(), $food->getPrice()) ;
-            $tab->addItemToServe($item) ;
+            $tab->getItemsInPreparation()->addItem($item) ;
         }
         
         $this->todoByTab->offsetSet($foodOrdered->getId(), $tab) ;
+        $this->saveTodoByTab() ;
+    }
+    
+    /**
+     * Move the prepared items from the itemsInPreparation list to the itemsToServe list
+     * @param Events $events
+     */
+    public function onFoodPrepared($events)
+    {
+        $foodPrepared = $events->getParam('foodPrepared') ;
+
+        $this->loadTodoByTab() ;
+        $tab = $this->getTab($foodPrepared->getId()) ;
+        
+        foreach($foodPrepared->getFood() as $food)
+        {
+            $key = $tab->getItemsInPreparation()->getKeyByMenuNumber($food) ;
+            if($key !== null)
+            {
+                $value = $tab->getItemsInPreparation()->offsetGet($key) ;
+                $tab->getItemsToServed()->addItem($value) ;
+                $tab->getItemsInPreparation()->offsetUnset($key) ;
+            }
+        }
+        $this->todoByTab->offsetSet($foodPrepared->getId(), $tab) ;
+        $this->saveTodoByTab() ;
+    }
+    
+    /**
+     * Move the served items from the itemsToServe list to the itemsServed list
+     * @param Events $events
+     */
+    public function onDrinksServed($events)
+    {
+        $drinksServed = $events->getParam('drinksServed') ;
+
+        $this->loadTodoByTab() ;
+        $tab = $this->getTab($drinksServed->getId()) ;
+        
+        foreach($drinksServed->getDrinks() as $drink)
+        {
+            $key = $tab->getItemsToServe()->getKeyByMenuNumber($drink) ;
+            if($key !== null)
+            {
+                $value = $tab->getItemsToServe()->offsetGet($key) ;
+                $tab->getItemsServed()->addItem($value) ;
+                $tab->getItemsToServe()->offsetUnset($key) ;
+            }
+        }
+        $this->todoByTab->offsetSet($drinksServed->getId(), $tab) ;
+        $this->saveTodoByTab() ;
+    }
+    
+    /**
+     * Move the served items from the itemsToServe list to the itemsServed list
+     * @param Events $events
+     */
+    public function onFoodServed($events)
+    {
+        $foodServed = $events->getParam('foodServed') ;
+
+        $this->loadTodoByTab() ;
+        $tab = $this->getTab($foodServed->getId()) ;
+        
+        foreach($foodServed->getFood() as $food)
+        {
+            $key = $tab->getItemsToServe()->getKeyByMenuNumber($food) ;
+            if($key !== null)
+            {
+                $value = $tab->getItemsToServe()->offsetGet($key) ;
+                $tab->getItemsServed()->addItem($value) ;
+                $tab->getItemsToServe()->offsetUnset($key) ;
+            }
+        }
+        $this->todoByTab->offsetSet($foodServed->getId(), $tab) ;
         $this->saveTodoByTab() ;
     }
 
@@ -154,7 +232,7 @@ class OpenTabs implements ListenerAggregateInterface
     /**
      * Retourne le statut de la commande
      * @param int $table - Id de la table
-     * @return \CoffeeBar\Entity\TabStatus
+     * @return TabStatus
      */
     public function tabForTable($table)
     {
@@ -200,7 +278,6 @@ class OpenTabs implements ListenerAggregateInterface
 
 //    public class OpenTabs : IOpenTabQueries,
 //        ISubscribeTo<FoodPrepared>,
-//        ISubscribeTo<DrinksServed>,
 //        ISubscribeTo<FoodServed>,
 //        ISubscribeTo<TabClosed>
 //    {
@@ -235,61 +312,9 @@ class OpenTabs implements ListenerAggregateInterface
 //                };
 //        }
 //
-//        public void Handle(FoodOrdered e)
-//        {
-//            AddItems(e.Id,
-//                e.Items.Select(drink => new TabItem
-//                {
-//                    MenuNumber = drink.MenuNumber,
-//                    Description = drink.Description,
-//                    Price = drink.Price
-//                }),
-//                t => t.InPreparation);
-//        }
-//
-//        public void Handle(FoodPrepared e)
-//        {
-//            MoveItems(e.Id, e.MenuNumbers, t => t.InPreparation, t => t.ToServe);
-//        }
-//
-//        public void Handle(DrinksServed e)
-//        {
-//            MoveItems(e.Id, e.MenuNumbers, t => t.ToServe, t => t.Served);
-//        }
-//
-//        public void Handle(FoodServed e)
-//        {
-//            MoveItems(e.Id, e.MenuNumbers, t => t.ToServe, t => t.Served);
-//        }
-//
 //        public void Handle(TabClosed e)
 //        {
 //            lock (todoByTab)
 //                todoByTab.Remove(e.Id);
 //        }
-//
-//        private void AddItems(Guid tabId, IEnumerable<TabItem> newItems, Func<Tab, List<TabItem>> to)
-//        {
-//            var tab = getTab(tabId);
-//            lock (tab)
-//                to(tab).AddRange(newItems);
-//        }
-//
-//        private void MoveItems(Guid tabId, List<int> menuNumbers,
-//            Func<Tab, List<TabItem>> from, Func<Tab, List<TabItem>> to)
-//        {
-//            var tab = getTab(tabId);
-//            lock (tab)
-//            {
-//                var fromList = from(tab);
-//                var toList = to(tab);
-//                foreach (var num in menuNumbers)
-//                {
-//                    var serveItem = fromList.First(f => f.MenuNumber == num);
-//                    fromList.Remove(serveItem);
-//                    toList.Add(serveItem);
-//                }
-//            }
-//        }
-//    }
 //}

@@ -8,7 +8,50 @@
 
 namespace CoffeeBar\Event ;
 
+use DateTime;
+
 class DrinksServed
 {
+    /**
+     *
+     * @var int - table number
+     */
+    protected $id ;
     
+    /**
+     *
+     * @var array - menu numbers
+     */
+    protected $drinks ;
+    
+    /**
+     *
+     * @var DateTime
+     */
+    protected $date ;
+
+    public function getId() {
+        return $this->id;
+    }
+
+    public function getDrinks() {
+        return $this->drinks;
+    }
+
+    public function getDate() {
+        return $this->date;
+    }
+
+    public function setId($id) {
+        $this->id = $id;
+    }
+
+    public function setDrinks($drinks) {
+        $this->drinks = $drinks;
+    }
+
+    public function setDate(DateTime $date) {
+        $this->date = $date;
+    }
+
 }
