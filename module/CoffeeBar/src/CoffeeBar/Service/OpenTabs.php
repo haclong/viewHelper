@@ -6,9 +6,14 @@
  * and open the template in the editor.
  */
 
-namespace CoffeeBar\Entity ;
+namespace CoffeeBar\Service ;
 
 use ArrayObject;
+use CoffeeBar\Entity\OpenTabs\ItemsArray;
+use CoffeeBar\Entity\OpenTabs\Tab;
+use CoffeeBar\Entity\OpenTabs\TabItem;
+use CoffeeBar\Entity\OpenTabs\TabStatus;
+use CoffeeBar\Exception\MissingKey;
 use Zend\EventManager\EventManagerInterface;
 use Zend\EventManager\ListenerAggregateInterface;
 
@@ -50,7 +55,7 @@ class OpenTabs implements ListenerAggregateInterface
     {
         try {
             $this->todoByTab = unserialize($this->cache->getItem('openTabs')) ;
-        } catch (MissingKeyException $ex) {
+        } catch (MissingKey $ex) {
             echo $ex->getMessage() . ' - openTabs cache key missing' ;
         }
     }
@@ -63,7 +68,7 @@ class OpenTabs implements ListenerAggregateInterface
     {
         try {
             $this->todoByTab = unserialize($this->cache->getItem('openTabs')) ;
-        } catch (MissingKeyException $ex) {
+        } catch (MissingKey $ex) {
             echo $ex->getMessage() . ' - openTabs cache key missing' ;
         }
     }

@@ -8,7 +8,7 @@
 
 namespace CoffeeBar\Event ;
 
-use CoffeeBar\Entity\OrderedItems;
+use CoffeeBar\Entity\TabStory\OrderedItems;
 use DateTime;
 
 class FoodOrdered

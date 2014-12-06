@@ -6,10 +6,15 @@
  * and open the template in the editor.
  */
 
-namespace CoffeeBar\Event ;
+namespace CoffeeBar\Service ;
 
 use CoffeeBar\Command\PlaceOrder;
-use CoffeeBar\Entity\TabStory;
+use CoffeeBar\Entity\TabStory\TabStory;
+use CoffeeBar\Event\DrinksOrdered;
+use CoffeeBar\Event\DrinksServed;
+use CoffeeBar\Event\FoodOrdered;
+use CoffeeBar\Event\FoodPrepared;
+use CoffeeBar\Event\FoodServed;
 use CoffeeBar\Event\TabOpened;
 use CoffeeBar\Exception\DrinksNotOutstanding;
 use CoffeeBar\Exception\FoodNotOutstanding;
@@ -25,7 +30,6 @@ class TabAggregate implements ListenerAggregateInterface
     protected $events ;
     protected $id ;
     protected $cache ;
-//    protected $tabs ;
 
     public function setEventManager(EventManagerInterface $events)
     {
@@ -48,7 +52,9 @@ class TabAggregate implements ListenerAggregateInterface
         $this->listeners[] = $events->attach('markDrinksServed', array($this, 'onMarkDrinksServed')) ;
         $this->listeners[] = $events->attach('drinksServed', array($this, 'onDrinksServed')) ;
         $this->listeners[] = $events->attach('markFoodPrepared', array($this, 'onMarkFoodPrepared')) ;
+        $this->listeners[] = $events->attach('foodPrepared', array($this, 'onFoodPrepared')) ;
         $this->listeners[] = $events->attach('markFoodServed', array($this, 'onMarkFoodServed')) ;
+        $this->listeners[] = $events->attach('foodServed', array($this, 'onFoodServed')) ;
     }
 
     public function detach(EventManagerInterface $events)

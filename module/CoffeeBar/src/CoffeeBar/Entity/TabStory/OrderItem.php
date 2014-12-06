@@ -6,7 +6,7 @@
  * and open the template in the editor.
  */
 
-namespace CoffeeBar\Entity ;
+namespace CoffeeBar\Entity\TabStory ;
 
 class OrderItem
 {

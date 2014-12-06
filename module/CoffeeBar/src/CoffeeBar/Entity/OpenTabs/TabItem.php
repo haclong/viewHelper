@@ -6,17 +6,23 @@
  * and open the template in the editor.
  */
 
-namespace CoffeeBar\Entity ;
+namespace CoffeeBar\Entity\OpenTabs ;
 
-class OrderedItem
+class TabItem
 {
-    protected $id ; // int Menu number
-    protected $description ; // string
-    protected $price ; // float
-    protected $isDrink ; // bool
+    protected $menuNumber;
+    protected $description;
+    protected $price;
+    
+    public function __construct($menuNumber, $description, $price)
+    {
+        $this->setMenuNumber($menuNumber) ;
+        $this->setDescription($description) ;
+        $this->setPrice($price) ;
+    }
 
-    public function getId() {
-        return $this->id;
+    public function getMenuNumber() {
+        return $this->menuNumber;
     }
 
     public function getDescription() {
@@ -27,12 +33,8 @@ class OrderedItem
         return $this->price;
     }
 
-    public function getIsDrink() {
-        return $this->isDrink;
-    }
-
-    public function setId($id) {
-        $this->id = $id;
+    public function setMenuNumber($menuNumber) {
+        $this->menuNumber = $menuNumber;
     }
 
     public function setDescription($description) {
@@ -43,7 +45,4 @@ class OrderedItem
         $this->price = $price;
     }
 
-    public function setIsDrink($isDrink) {
-        $this->isDrink = $isDrink;
-    }
 }

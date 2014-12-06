@@ -6,9 +6,7 @@
  * and open the template in the editor.
  */
 
-namespace CoffeeBar\Entity ;
-
-use ArrayObject;
+namespace CoffeeBar\Entity\TabStory ;
 
 class TabStory
 {

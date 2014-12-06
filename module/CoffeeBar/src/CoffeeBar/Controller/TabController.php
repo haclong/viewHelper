@@ -2,7 +2,7 @@
 
 namespace CoffeeBar\Controller ;
 
-use CoffeeBar\Entity\OrderModel;
+use CoffeeBar\Entity\TabStory\OrderModel;
 use CoffeeBar\Exception\TabAlreadyOpened;
 use Zend\Mvc\Controller\AbstractActionController;
 
@@ -85,7 +85,7 @@ class TabController extends AbstractActionController
             $this->markDrinksServed($id, $menuNumbers) ;
             $this->markFoodServed($id, $menuNumbers) ;
         }
-//        return $this->redirect()->toRoute('tab/status', array('id' => $id)) ;
+        return $this->redirect()->toRoute('tab/status', array('id' => $id)) ;
     }
     
     protected function assignOrderedItems(OrderModel $model)

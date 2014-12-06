@@ -9,15 +9,15 @@
 
 namespace CoffeeBar;
 
-use CoffeeBar\Command\OpenTab;
-use CoffeeBar\Command\PlaceOrder;
 use CoffeeBar\Command\MarkDrinksServed;
 use CoffeeBar\Command\MarkFoodServed;
-use CoffeeBar\Entity\OpenTabs;
-use CoffeeBar\Entity\TodoByTab;
-use CoffeeBar\Event\TabAggregate;
+use CoffeeBar\Command\OpenTab;
+use CoffeeBar\Command\PlaceOrder;
+use CoffeeBar\Service\OpenTabs;
+use CoffeeBar\Entity\OpenTabs\TodoByTab;
 use CoffeeBar\Form\MenuSelect;
 use CoffeeBar\Form\WaiterSelect;
+use CoffeeBar\Service\TabAggregate;
 use CoffeeBar\Service\TabCacheService;
 use Zend\ModuleManager\Feature\FormElementProviderInterface;
 use Zend\Mvc\MvcEvent;
@@ -40,7 +40,6 @@ class Module implements FormElementProviderInterface
         $em->attachAggregate($openTabs) ;
         
         $cache = $sm->get('TabCache') ;
-//        $cache->getCache()->flush() ;
         $cache->setOpenTabs(serialize(new TodoByTab())) ;
     }
     
@@ -80,9 +79,9 @@ class Module implements FormElementProviderInterface
             'invokables' => array(
                 'CoffeeBarEntity\Waiters' => 'CoffeeBar\Entity\Waiters',
                 'CoffeeBarEntity\MenuItems' => 'CoffeeBar\Entity\MenuItems',
-                'TabEventManager' => 'CoffeeBar\Event\TabEventManager',
-                'OrderedItems' => 'CoffeeBar\Entity\OrderedItems',
-                'OrderedItem' => 'CoffeeBar\Entity\OrderedItem',
+                'TabEventManager' => 'CoffeeBar\Service\TabEventManager',
+                'OrderedItems' => 'CoffeeBar\Entity\TabStory\OrderedItems',
+                'OrderedItem' => 'CoffeeBar\Entity\TabStory\OrderedItem',
             ),
             'factories' => array(
                 'OpenTabForm' => function($sm) {

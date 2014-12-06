@@ -10,7 +10,7 @@ namespace CoffeeBar\Form ;
 
 use Zend\Form\Fieldset;
 use Zend\Stdlib\Hydrator\ClassMethods;
-use CoffeeBar\Entity\OrderItem ;
+use CoffeeBar\Entity\TabStory\OrderItem ;
 
 class MenuItemFieldset extends Fieldset
 {

@@ -6,10 +6,11 @@
  * and open the template in the editor.
  */
 
-namespace CoffeeBar\Event ;
+namespace CoffeeBar\Exception ;
 
-use Zend\EventManager\EventManager;
+use Exception;
 
-class TabEventManager extends EventManager
+class MissingKey extends Exception
 {
+    
 }
