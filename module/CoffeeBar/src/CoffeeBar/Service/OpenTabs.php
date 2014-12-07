@@ -11,9 +11,10 @@ namespace CoffeeBar\Service ;
 use ArrayObject;
 use CoffeeBar\Entity\OpenTabs\ItemsArray;
 use CoffeeBar\Entity\OpenTabs\Tab;
+use CoffeeBar\Entity\OpenTabs\TabInvoice;
 use CoffeeBar\Entity\OpenTabs\TabItem;
 use CoffeeBar\Entity\OpenTabs\TabStatus;
-use MissingKeyException ;
+use MissingKeyException;
 use Zend\EventManager\EventManagerInterface;
 use Zend\EventManager\ListenerAggregateInterface;
 
@@ -239,7 +240,7 @@ class OpenTabs implements ListenerAggregateInterface
      * @param int $table - Id de la table
      * @return TabStatus
      */
-    public function tabForTable($table)
+    public function statusForTable($table)
     {
         $this->loadTodoByTab() ;
         foreach($this->todoByTab->getArrayCopy() as $k => $v)
@@ -292,6 +293,24 @@ class OpenTabs implements ListenerAggregateInterface
         return $array ;
     }
 
+    public function invoiceForTable($table)
+    {
+        $this->loadTodoByTab() ;
+        foreach($this->todoByTab->getArrayCopy() as $k => $v)
+        {
+            if($v->getTableNumber() == $table)
+            {
+                $status = new TabInvoice() ;
+                $status->setTabId($k) ;
+                $status->setTableNumber($v->getTableNumber()) ;
+                $status->setItems($v->getItemsServed()) ;
+                $status->setHasUnservedItems(count($v->getItemsToServe()) + count($v->getItemsInPreparation())) ;
+                return $status ;
+            }
+        }
+        return NULL ;
+    }
+
     protected function getTab($guid)
     {
         $this->loadTodoByTab() ;
@@ -303,23 +322,6 @@ class OpenTabs implements ListenerAggregateInterface
 //    public class OpenTabs : IOpenTabQueries,
 //        ISubscribeTo<TabClosed>
 //    {
-//        public TabInvoice InvoiceForTable(int table)
-//        {
-//            KeyValuePair<Guid, Tab> tab;
-//            lock (todoByTab)
-//                tab = todoByTab.First(t => t.Value.TableNumber == table);
-//
-//            lock (tab.Value)
-//                return new TabInvoice
-//                {
-//                    TabId = tab.Key,
-//                    TableNumber = tab.Value.TableNumber,
-//                    Items = new List<TabItem>(tab.Value.Served),
-//                    Total = tab.Value.Served.Sum(i => i.Price),
-//                    HasUnservedItems = tab.Value.InPreparation.Any() || tab.Value.ToServe.Any()
-//                };
-//        }
-//
 //        public void Handle(TabClosed e)
 //        {
 //            lock (todoByTab)

@@ -4,7 +4,6 @@ namespace CoffeeBar\Controller ;
 
 use CoffeeBar\Entity\TabStory\OrderModel;
 use CoffeeBar\Exception\TabAlreadyOpened;
-use InvalidArgumentException;
 use Zend\Mvc\Controller\AbstractActionController;
 
 class TabController extends AbstractActionController
@@ -59,7 +58,9 @@ class TabController extends AbstractActionController
 
     public function closeAction()
     {
-        return array('result' => '') ;
+        $openTabs = $this->serviceLocator->get('OpenTabs') ;
+        $status = $openTabs->invoiceForTable($this->params()->fromRoute('id')) ;
+        return array('result' => $status) ;
     }
     
     public function listOpenedAction()
@@ -72,7 +73,7 @@ class TabController extends AbstractActionController
     public function statusAction()
     {
         $openTabs = $this->serviceLocator->get('OpenTabs') ;
-        $status = $openTabs->tabForTable($this->params()->fromRoute('id')) ;
+        $status = $openTabs->statusForTable($this->params()->fromRoute('id')) ;
         return array('result' => $status) ;
     }
     

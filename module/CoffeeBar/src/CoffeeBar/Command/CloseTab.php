@@ -29,3 +29,10 @@ class CloseTab
         $this->amountPaid = $amountPaid;
     }
 }
+
+//    public class CloseTab
+//    {
+//        public Guid Id;
+//        public decimal AmountPaid;
+//    }
+//}

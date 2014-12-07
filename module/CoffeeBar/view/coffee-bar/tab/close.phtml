@@ -1,10 +1,22 @@
+<h3>Encaisser pour la table #<?php echo $result->getTableNumber() ; ?> </h3>
+
+<table>    
 <?php
 
-echo __FILE__ ;
-
-if(!isset($result))
+foreach($result->getItems() as $item)
 {
-    $result = array() ;
+?>
+    <tr>
+        <td><?php echo $item->getMenuNumber() ; ?></td>
+        <td><?php echo $item->getDescription() ; ?></td>
+        <td><?php echo $item->getPrice() ; ?></td>
+    </tr>
+<?php
 }
-
-var_dump($result) ;
+?>
+    <tr>
+        <td>Total</td>
+        <td></td>
+        <td><?php echo $result->getTotal() ; ?></td>
+    </tr>
+</table>

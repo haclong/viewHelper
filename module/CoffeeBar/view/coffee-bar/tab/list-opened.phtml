@@ -13,6 +13,7 @@
             echo "<td>" .$v->getWaiter(). "</td>" ;
             echo "<td>" .$v->getTableNumber(). "</td>" ;
             echo "<td><a href='".$this->url('tab/status', array('id' => $v->getTableNumber()))."'>Voir le statut</a></td>" ;
+            echo "<td><a href='".$this->url('tab/close', array('id' => $v->getTableNumber()))."'>Encaisser</a></td>" ;
             echo "</tr>" ;
         }
     ?>

@@ -29,6 +29,11 @@ class TabInvoice
     }
 
     public function getTotal() {
+        $this->total = 0 ;
+        foreach($this->items as $item)
+        {
+            $this->total += $item->getPrice() ;
+        }
         return $this->total;
     }
 
@@ -46,13 +51,19 @@ class TabInvoice
 
     public function setItems($items) {
         $this->items = $items;
+        $this->getTotal() ;
     }
 
-    public function setTotal($total) {
-        $this->total = $total;
-    }
-
-    public function setHasUnservedItems($hasUnservedItems) {
-        $this->hasUnservedItems = $hasUnservedItems;
+//    public function setTotal($total) {
+//        $this->total = $total;
+//    }
+//
+    public function setHasUnservedItems($nonServedItemsCount) {
+        if($nonServedItemsCount == 0)
+        {
+            $this->hasUnservedItems = FALSE ;
+        } else {
+            $this->hasUnservedItems = TRUE ;
+        }
     }
 }
