@@ -10,6 +10,8 @@ if(!isset($result))
 ?>
 <pre>
 <?php
+var_dump(unserialize($result->getItem('todoList'))) ;
+
 $openTabs = unserialize($result->getItem('openTabs')) ;
 var_dump($openTabs) ;
 

@@ -277,14 +277,14 @@ class TabAggregate implements ListenerAggregateInterface
     public function onFoodServed($events)
     {
         $foodServed = $events->getParam('foodServed') ; 
-        
+
         $story = $this->loadStory($foodServed->getId()) ;
         $story->addEvents($foodServed) ;
         
         foreach($foodServed->getFood() as $food)
         {
-            $key = $story->getOutstandingFood()->getKeyById($food) ;
-            
+            $key = $story->getPreparedFood()->getKeyById($food) ;
+           
             if($key !== null)
             {
                 $price = $story->getPreparedFood()->offsetGet($key)->getPrice() ;
@@ -292,7 +292,7 @@ class TabAggregate implements ListenerAggregateInterface
                 $story->getPreparedFood()->offsetUnset($key) ;
             }
         }
-        $this->saveStory($foodPrepared->getId(), $story) ;
+        $this->saveStory($foodServed->getId(), $story) ;
     }
 
     protected function isTabOpened($id)

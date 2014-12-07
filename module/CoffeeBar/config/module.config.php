@@ -95,7 +95,7 @@ return array(
                             'markserved' => array(
                                 'type' => 'Literal',
                                 'options' => array(
-                                    'route' => '/markserved',
+                                    'route' => '/mark',
                                     'defaults' => array(
                                         'controller'    => 'CoffeeBarController\Tab',
                                         'action'        => 'served',
@@ -118,41 +118,47 @@ return array(
                         'type' => 'Literal',
                         'options' => array(
                             'route' => '/staff',
-                        ),
-//                        'may_terminate' => true,
-                        'child_routes' => array(
-                            'list' => array(
-                                'type' => 'Literal',
-                                'options' => array(
-                                    'route' => '/waiters',
-                                    'defaults' => array(
-                                        'controller'    => 'CoffeeBarController\Staff',
-                                        'action'        => 'waiterList',
-                                    ),
-                                ),
-                                'may_terminate' => true,
+                            'defaults' => array(
+                                'controller' => 'CoffeeBarController\Staff',
+                                'action'     => 'index',
                             ),
+                        ),
+                        'may_terminate' => true,
+                        'child_routes' => array(
                             'todo' => array(
                                 'type' => 'Segment',
                                 'options' => array(
                                     'route' => '/[:name]',
                                     'constraints' => array(
-                                        'name' => 'waiters{0}|[a-zA-Z]+',
+                                        'name' => '[a-zA-Z]+',
                                     ),
                                     'defaults' => array(
                                         'controller'    => 'CoffeeBarController\Staff',
-                                        'action'        => 'waiterToDo',
+                                        'action'        => 'toDo',
                                     ),
                                 ),
                                 'may_terminate' => true,
                             ),
-                            'cook' => array(
+                        ),
+                    ),
+                    'chef' => array(
+                        'type' => 'Literal',
+                        'options' => array(
+                            'route' => '/chef',
+                            'defaults' => array(
+                                'controller' => 'CoffeeBarController\Chef',
+                                'action'     => 'index',
+                            ),
+                        ),
+                        'may_terminate' => true,
+                        'child_routes' => array(
+                            'markprepared' => array(
                                 'type' => 'Literal',
                                 'options' => array(
-                                    'route' => '/chef',
+                                    'route' => '/mark',
                                     'defaults' => array(
-                                        'controller'    => 'CoffeeBarController\Staff',
-                                        'action'        => 'chefToDo',
+                                        'controller' => 'CoffeeBarController\Chef',
+                                        'action' => 'mark',
                                     ),
                                 ),
                             ),
@@ -167,6 +173,7 @@ return array(
             'CoffeeBarController\Index' => 'CoffeeBar\Controller\IndexController',
             'CoffeeBarController\Staff' => 'CoffeeBar\Controller\StaffController',
             'CoffeeBarController\Tab'   => 'CoffeeBar\Controller\TabController',
+            'CoffeeBarController\Chef'  => 'CoffeeBar\Controller\ChefController',
         ),
         'factories' => array(
 //            'CoffeeBarController\Tab' => 'CoffeeBar\Factory\TabControllerFactory', 
@@ -194,11 +201,11 @@ return array(
             ),
             array(
                 'label' => 'Staff',
-                'route' => 'staff/list',
+                'route' => 'staff',
             ),
             array(
                 'label' => 'Chef\'s todo',
-                'route' => 'staff/cook',
+                'route' => 'chef',
             ),
             array(
                 'label' => 'Flush cache',

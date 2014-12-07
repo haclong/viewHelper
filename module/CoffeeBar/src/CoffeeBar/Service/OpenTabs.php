@@ -13,7 +13,7 @@ use CoffeeBar\Entity\OpenTabs\ItemsArray;
 use CoffeeBar\Entity\OpenTabs\Tab;
 use CoffeeBar\Entity\OpenTabs\TabItem;
 use CoffeeBar\Entity\OpenTabs\TabStatus;
-use CoffeeBar\Exception\MissingKey;
+use MissingKeyException ;
 use Zend\EventManager\EventManagerInterface;
 use Zend\EventManager\ListenerAggregateInterface;
 
@@ -55,7 +55,7 @@ class OpenTabs implements ListenerAggregateInterface
     {
         try {
             $this->todoByTab = unserialize($this->cache->getItem('openTabs')) ;
-        } catch (MissingKey $ex) {
+        } catch (MissingKeyException $ex) {
             echo $ex->getMessage() . ' - openTabs cache key missing' ;
         }
     }
@@ -68,7 +68,7 @@ class OpenTabs implements ListenerAggregateInterface
     {
         try {
             $this->todoByTab = unserialize($this->cache->getItem('openTabs')) ;
-        } catch (MissingKey $ex) {
+        } catch (MissingKeyException $ex) {
             echo $ex->getMessage() . ' - openTabs cache key missing' ;
         }
     }
@@ -142,7 +142,7 @@ class OpenTabs implements ListenerAggregateInterface
             if($key !== null)
             {
                 $value = $tab->getItemsInPreparation()->offsetGet($key) ;
-                $tab->getItemsToServed()->addItem($value) ;
+                $tab->getItemsToServe()->addItem($value) ;
                 $tab->getItemsInPreparation()->offsetUnset($key) ;
             }
         }
@@ -273,6 +273,25 @@ class OpenTabs implements ListenerAggregateInterface
         }
     }
     
+    /**
+     * Retourne la liste des éléments à servir
+     * @param string $waiter
+     * @return ArrayObject
+     */
+    public function todoListForWaiter($waiter)
+    {
+        $this->loadTodoByTab() ;
+        $array = array() ;
+        foreach($this->todoByTab->getArrayCopy() as $k => $v)
+        {
+            if($v->getWaiter() == $waiter && count($v->getItemsToServe()) > 0)
+            {
+                $array[$v->getTableNumber()] = $v->getItemsToServe() ;
+            }
+        }
+        return $array ;
+    }
+
     protected function getTab($guid)
     {
         $this->loadTodoByTab() ;
@@ -282,24 +301,8 @@ class OpenTabs implements ListenerAggregateInterface
 }
 
 //    public class OpenTabs : IOpenTabQueries,
-//        ISubscribeTo<FoodPrepared>,
-//        ISubscribeTo<FoodServed>,
 //        ISubscribeTo<TabClosed>
 //    {
-//        public Dictionary<int, List<TabItem>> TodoListForWaiter(string waiter)
-//        {
-//            lock (todoByTab)
-//                return (from tab in todoByTab
-//                        where tab.Value.Waiter == waiter
-//                        select new
-//                        {
-//                            TableNumber = tab.Value.TableNumber,
-//                            ToServe = CopyItems(tab.Value, t => t.ToServe)
-//                        })
-//                        .Where(t => t.ToServe.Count > 0)
-//                        .ToDictionary(k => k.TableNumber, v => v.ToServe);
-//        }
-//
 //        public TabInvoice InvoiceForTable(int table)
 //        {
 //            KeyValuePair<Guid, Tab> tab;

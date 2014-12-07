@@ -4,6 +4,7 @@ namespace CoffeeBar\Controller ;
 
 use CoffeeBar\Entity\TabStory\OrderModel;
 use CoffeeBar\Exception\TabAlreadyOpened;
+use InvalidArgumentException;
 use Zend\Mvc\Controller\AbstractActionController;
 
 class TabController extends AbstractActionController
@@ -79,8 +80,13 @@ class TabController extends AbstractActionController
     {
         $request = $this->getRequest() ;    
         if($request->isPost()) {
-            $menuNumbers = $this->extractMenuNumber($request->getPost()->get('served')) ;
             $id = $request->getPost()->get('tableNumber') ;
+
+            if(!is_array($request->getPost()->get('served'))) {
+                $this->flashMessenger()->addErrorMessage('Aucun plat ou boisson n\'a été choisi pour servir');
+                return $this->redirect()->toRoute('tab/status', array('id' => $id));
+            } 
+            $menuNumbers = $this->extractMenuNumber($request->getPost()->get('served')) ;
 
             $this->markDrinksServed($id, $menuNumbers) ;
             $this->markFoodServed($id, $menuNumbers) ;

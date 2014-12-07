@@ -9,14 +9,17 @@
 
 namespace CoffeeBar;
 
+use ArrayObject;
 use CoffeeBar\Command\MarkDrinksServed;
+use CoffeeBar\Command\MarkFoodPrepared;
 use CoffeeBar\Command\MarkFoodServed;
 use CoffeeBar\Command\OpenTab;
 use CoffeeBar\Command\PlaceOrder;
-use CoffeeBar\Service\OpenTabs;
 use CoffeeBar\Entity\OpenTabs\TodoByTab;
 use CoffeeBar\Form\MenuSelect;
 use CoffeeBar\Form\WaiterSelect;
+use CoffeeBar\Service\ChefTodoList;
+use CoffeeBar\Service\OpenTabs;
 use CoffeeBar\Service\TabAggregate;
 use CoffeeBar\Service\TabCacheService;
 use Zend\ModuleManager\Feature\FormElementProviderInterface;
@@ -34,13 +37,13 @@ class Module implements FormElementProviderInterface
     {
         $sm = $event->getApplication()->getServiceManager() ;
         $em = $sm->get('TabEventManager');
-        $tabAggregate = $sm->get('TabAggregate') ;
-        $openTabs = $sm->get('OpenTabs') ;
-        $em->attachAggregate($tabAggregate) ;
-        $em->attachAggregate($openTabs) ;
+        $em->attachAggregate($sm->get('TabAggregate')) ;
+        $em->attachAggregate($sm->get('OpenTabs')) ;
+        $em->attachAggregate($sm->get('ChefTodoList')) ;
         
         $cache = $sm->get('TabCache') ;
         $cache->setOpenTabs(serialize(new TodoByTab())) ;
+        $cache->setTodoList(serialize(new ArrayObject())) ;
     }
     
     public function getAutoloaderConfig()
@@ -109,6 +112,12 @@ class Module implements FormElementProviderInterface
                     $markDrinksServed->setEventManager($events) ;
                     return $markDrinksServed ;
                 },
+                'MarkFoodPreparedCommand' => function($sm) {
+                    $events = $sm->get('TabEventManager') ;
+                    $markFoodPrepared = new MarkFoodPrepared() ;
+                    $markFoodPrepared->setEventManager($events) ;
+                    return $markFoodPrepared ;
+                },
                 'MarkFoodServedCommand' => function($sm) {
                     $events = $sm->get('TabEventManager') ;
                     $markFoodServed = new MarkFoodServed() ;
@@ -139,6 +148,12 @@ class Module implements FormElementProviderInterface
                     $openTabs = new OpenTabs() ;
                     $openTabs->setCache($cache) ;
                     return $openTabs ;
+                },
+                'ChefTodoList' => function($sm) {
+                    $cache = $sm->get('Cache\Persistence') ;
+                    $todoList = new ChefTodoList() ;
+                    $todoList->setCache($cache) ;
+                    return $todoList ;
                 },
             ),
         ) ;

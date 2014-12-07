@@ -6,18 +6,15 @@ use Zend\Mvc\Controller\AbstractActionController;
 
 class StaffController extends AbstractActionController
 {
-    public function waiterToDoAction()
+    public function toDoAction()
     {
         $waiter = $this->params()->fromRoute('name');
-        return array('result' => $waiter) ;
+        $openTabs = $this->serviceLocator->get('OpenTabs') ;
+        $list = $openTabs->todoListForWaiter($waiter) ;
+        return array('result' => $list, 'waiter' => $waiter) ;
     }
     
-    public function chefToDoAction()
-    {
-        return array('result' => '') ;
-    }
-    
-    public function waiterListAction()
+    public function indexAction()
     {
         $waiters = $this->serviceLocator->get('CoffeeBarEntity\Waiters') ;
         return array('result' => $waiters) ;

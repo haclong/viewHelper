@@ -38,4 +38,23 @@ class TabCacheService
             echo 'openTabs cache key missing' ;
         }
     }
+    
+    public function setTodoList($todoList)
+    {
+        if($this->cache->hasItem('todoList'))
+        {
+            return $this->cache->getItem('todoList') ;
+        } else {
+            return $this->cache->setItem('todoList', $todoList) ;
+        }
+    }
+    
+    public function getTodoList()
+    {
+        try {
+            return unserialize($this->cache->getItem('todoList')) ;
+        } catch (MissingKeyException $ex) {
+            echo 'todoList cache key missing' ;
+        }
+    }
 }
