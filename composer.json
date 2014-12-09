@@ -1,6 +1,6 @@
 {
     "name": "haclong/coffeebar",
-    "description": "Skeleton Application for ZF2",
+    "description": "A small module experimenting how to use event manager to build an application",
     "version": "1.0",
     "require": {
         "php": ">=5.3.3",
