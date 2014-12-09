@@ -1,5 +1,5 @@
 {
-    "name": "haclong/skeleton",
+    "name": "haclong/coffeebar",
     "description": "Skeleton Application for ZF2",
     "version": "1.0",
     "require": {
@@ -8,11 +8,6 @@
     },
     "require-dev": {
         "zendframework/zend-developer-tools": "dev-master",
-        "behat/behat": "2.4.*@stable",
-        "behat/mink": "1.4@stable",
-        "behat/mink-extension": "*",
-        "behat/mink-goutte-driver":"1.0.3",
-        "mvlabs/zf2behat-extension" : "dev-master"
     },
     "config": {
         "bin-dir": "bin/"
