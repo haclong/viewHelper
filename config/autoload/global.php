@@ -12,5 +12,14 @@
  */
 
 return array(
-    // ...
+    'caches' => array(
+        'Cache\Persistence' => array(
+            'adapter' => 'filesystem',
+            'ttl'     => 86400,
+            'options' => array(
+                // mod : 775 - owner : user:www-data
+                'cache_dir' => __DIR__ . '/../../data/cache/',
+            ),
+        ),
+    ),
 );
