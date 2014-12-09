@@ -7,7 +7,7 @@
         "zendframework/zendframework": "2.3.*"
     },
     "require-dev": {
-        "zendframework/zend-developer-tools": "dev-master",
+        "zendframework/zend-developer-tools": "dev-master"
     },
     "config": {
         "bin-dir": "bin/"
