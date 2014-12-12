@@ -44,6 +44,7 @@ class TabAggregate implements ListenerAggregateInterface
 
     public function attach(EventManagerInterface $events)
     {
+        // si l'événement 'openTab' est déclenché, la méthode TabAggregate::onOpenTab() s'exécute
         $this->listeners[] = $events->attach('openTab', array($this, 'onOpenTab'));
         $this->listeners[] = $events->attach('tabOpened', array($this, 'onTabOpened'));
         $this->listeners[] = $events->attach('placeOrder', array($this, 'onPlaceOrder')) ;

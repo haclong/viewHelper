@@ -14,15 +14,19 @@ use Zend\Stdlib\Hydrator\ArraySerializable;
 
 class OpenTabForm extends Form
 {
+    // la fonction init va charger l'élément de formulaire customisé
+    // les autres éléments de formulaire "standards" peuvent être créé dans le constructeur
     public function init()
     {
         $this->add(array(
             'name' => 'waiter',
+            // utiliser la clé définie dans getFormElementConfig dans la classe Module
             'type' => 'WaiterSelect',
             'options' => array(
                 'label' => 'Serveur',
             ),
             'attributes' => array(
+                // c'est une des classes CSS de Twitter Bootstrap
                 'class' => 'form-control',
             ),
         )) ;
@@ -35,6 +39,8 @@ class OpenTabForm extends Form
         $this->setAttribute('method', 'post')
              ->setHydrator(new ArraySerializable()) ;
         
+        // le champ id est un id unique (guid) caché
+        // il sera généré automatiquement dans la vue
         $this->add(array(
             'name' => 'id',
             'type' => 'hidden',
@@ -55,22 +61,10 @@ class OpenTabForm extends Form
         $this->add(array(
             'name' => 'submit',
             'type' => 'Submit',
-            'options' => array(
-//                'label' => 'Open',
-            ),
             'attributes' => array(
                 'value' => 'Open',
                 'class' => 'btn btn-default',
             ),
         )) ;
-    }
-    
-    public function getInputFilterSpecification()
-    {
-        return array(
-            'table' => array(
-                'required' => true,
-            ),
-        ) ;
     }
 }

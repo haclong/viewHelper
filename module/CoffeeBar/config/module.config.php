@@ -10,12 +10,11 @@
 return array(
     'router' => array(
         'routes' => array(
-//            'coffeebar' => array(
-//                'type'    => 'Literal',
-//                'options' => array(
-//                    'route'    => '/coffeebar',
-//                ),
-//                'child_routes' => array(
+            /**
+             * on écrase la route 'home' qui est définie par défaut dans Application
+             * voir le fichier /module/Application/config/module.config.php
+             * cette adresse URL mène à la route http://coffeebar.home/
+             */
                     'home' => array(
                         'type' => 'Literal',
                         'options' => array(
@@ -28,11 +27,22 @@ return array(
                         'may_terminate' => true,
                     ),
                     'tab' => array(
+                        /**
+                         * cette route ne correspond à aucune page
+                         * notez l'absence d'options 'defaults' parce qu'il n'y a
+                         * pas de pages valides à cette adresse http://coffeebar.home/tab
+                         * cette adresse retourne une erreur 404
+                         * vous pouvez également décider de définir un contrôleur 
+                         * et une action par défaut pour éviter l'erreur 404
+                         */
                         'type' => 'Literal',
                         'options' => array(
                             'route' => '/tab',
                         ),
                         'child_routes' => array(
+                            /**
+                             * cette URL (http://coffeebar.com/tab/open) mène à cette route
+                             */
                             'open' => array(
                                 'type' => 'Literal',
                                 'options' => array(
@@ -44,6 +54,9 @@ return array(
                                 ),
                                 'may_terminate' => true,
                             ),
+                            /**
+                             * cette URL : http://coffeebar.home/tab/order mène à cette route
+                             */
                             'order' => array(
                                 'type' => 'Segment',
                                 'options' => array(
@@ -57,6 +70,9 @@ return array(
                                     ),
                                 ),
                             ),
+                            /**
+                             * cette URL : http://coffeebar.home/tab/close/{$id} mène à cette route
+                             */
                             'close' => array(
                                 'type' => 'Segment',
                                 'options' => array(
@@ -71,6 +87,9 @@ return array(
                                 ),
                                 'may_terminate' => true,
                             ),
+                            /**
+                             * cette URL : http://coffeebar.home/tab/opened mène à cette route
+                             */
                             'opened' => array(
                                 'type' => 'Literal',
                                 'options' => array(
@@ -82,6 +101,9 @@ return array(
                                 ),
                                 'may_terminate' => true,
                             ),
+                            /**
+                             * cette URL : http://coffeebar.home/tab/status mène à cette route
+                             */
                             'status' => array(
                                 'type' => 'Segment',
                                 'options' => array(
@@ -92,6 +114,9 @@ return array(
                                     ),
                                 ),
                             ),
+                            /**
+                             * cette URL : http://coffeebar.home/tab/markserved mène à cette route
+                             */
                             'markserved' => array(
                                 'type' => 'Literal',
                                 'options' => array(
@@ -104,6 +129,9 @@ return array(
                             ),
                         ),
                     ),
+                    /**
+                     * cette URL : http://coffeebar.home/flush mène à cette route
+                     */
                     'flush' => array(
                         'type' => 'Literal',
                         'options' => array(
@@ -114,6 +142,9 @@ return array(
                             ),
                         ),
                     ),
+                    /**
+                     * cette URL : http://coffeebar.home/staff mène à cette route
+                     */
                     'staff' => array(
                         'type' => 'Literal',
                         'options' => array(
@@ -125,6 +156,9 @@ return array(
                         ),
                         'may_terminate' => true,
                         'child_routes' => array(
+                            /**
+                             * cette URL : http://coffeebar.home/staff/{$waiter} mène à cette route
+                             */
                             'todo' => array(
                                 'type' => 'Segment',
                                 'options' => array(
@@ -141,6 +175,9 @@ return array(
                             ),
                         ),
                     ),
+                    /**
+                     * cette URL : http://coffeebar.home/chef mène à cette route
+                     */
                     'chef' => array(
                         'type' => 'Literal',
                         'options' => array(
@@ -152,6 +189,9 @@ return array(
                         ),
                         'may_terminate' => true,
                         'child_routes' => array(
+                            /**
+                             * cette URL : http:///coffeebar.home/chef/mark mène à cette route
+                             */
                             'markprepared' => array(
                                 'type' => 'Literal',
                                 'options' => array(
@@ -193,7 +233,7 @@ return array(
         'default' => array(
             array(
                 'label' => 'Open new tab',
-                'route' => 'tab/open',
+                'route' => 'tab/open', // utiliser les clés du tableau $router
             ),
             array(
                 'label' => 'Opened tabs',

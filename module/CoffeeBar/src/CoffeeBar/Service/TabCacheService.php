@@ -10,13 +10,16 @@ namespace CoffeeBar\Service ;
 
 class TabCacheService
 {
+    // notez la propriété protégé et les accesseurs qui nous permettent de gérer ainsi les dépendances
     protected $cache ;
     
     public function getCache() {
         return $this->cache;
     }
 
-    public function setCache($cache) {
+    // l'injection se fait dans le constructeur : cela permet de rendre l'élément 
+    // obligatoire au bon fonctionnement du service.
+    public function __construct($cache) {
         $this->cache = $cache;
     }
     

@@ -32,11 +32,14 @@ class TabController extends AbstractActionController
     
     public function orderAction()
     {
+        // utiliser la clé déclarée dans le Service Manager (classe Module)
         $form = $this->serviceLocator->get('PlaceOrderForm') ;
         $request = $this->getRequest() ;
 
+        // vérifier si on connait le numéro de la table pour laquelle on passe commande
         if ($id = (int) $this->params()->fromRoute('id')) {
             $form->get('id')->setValue($id) ;
+        // sinon, vérifier si le formulaire a été posté
         } elseif($request->isPost()) {
             $form->setData($request->getPost()) ;
             if($form->isValid()) {
@@ -48,6 +51,7 @@ class TabController extends AbstractActionController
                 $placeOrder->placeOrder($openTabs->tabIdForTable($tableNumber), $items) ;
                 return $this->redirect()->toRoute('tab/status', array('id' => $tableNumber));
             }
+        // si on ne sait pas pour quelle table on va passer commande, retourner à la page 'Ouvrir une commande'
         } else {
             return $this->redirect()->toRoute('tab/open');
         }
