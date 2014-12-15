@@ -10,12 +10,14 @@
 namespace CoffeeBar;
 
 use ArrayObject;
+use CoffeeBar\Command\CloseTab;
 use CoffeeBar\Command\MarkDrinksServed;
 use CoffeeBar\Command\MarkFoodPrepared;
 use CoffeeBar\Command\MarkFoodServed;
 use CoffeeBar\Command\OpenTab;
 use CoffeeBar\Command\PlaceOrder;
 use CoffeeBar\Entity\OpenTabs\TodoByTab;
+use CoffeeBar\Form\CloseTabForm;
 use CoffeeBar\Form\MenuSelect;
 use CoffeeBar\Form\WaiterSelect;
 use CoffeeBar\Service\ChefTodoList;
@@ -113,6 +115,11 @@ class Module implements FormElementProviderInterface
                     $openTab->setOpenTabs($sm->get('OpenTabs')) ;
                     return $openTab ;
                 },
+                'PlaceOrderForm' => function($sm) {
+                    $formManager = $sm->get('FormElementManager') ;
+                    $form = $formManager->get('CoffeeBar\Form\PlaceOrderForm') ;
+                    return $form ;
+                },
                 'PlaceOrderCommand' => function($sm) {
                     $events = $sm->get('TabEventManager') ;
                     $placeOrder = new PlaceOrder() ;
@@ -137,6 +144,17 @@ class Module implements FormElementProviderInterface
                     $markFoodServed->setEventManager($events) ;
                     return $markFoodServed ;
                 },
+                'CloseTabForm' => function($sm) {
+                    $form = new CloseTabForm() ;
+                    $form->setObject($sm->get('CloseTabCommand')) ;
+                    return $form ;
+                },
+                'CloseTabCommand' => function($sm) {
+                    $events = $sm->get('TabEventManager') ;
+                    $closeTab = new CloseTab() ;
+                    $closeTab->setEventManager($events) ;
+                    return $closeTab ;
+                },
                 'TabAggregate' => function($sm) {
                     $events = $sm->get('TabEventManager') ;
                     $cache = $sm->get('Cache\Persistence') ;
@@ -144,11 +162,6 @@ class Module implements FormElementProviderInterface
                     $tab->setEventManager($events) ;
                     $tab->setCache($cache) ;
                     return $tab ;
-                },
-                'PlaceOrderForm' => function($sm) {
-                    $formManager = $sm->get('FormElementManager') ;
-                    $form = $formManager->get('CoffeeBar\Form\PlaceOrderForm') ;
-                    return $form ;
                 },
                 // parce qu'on veut pouvoir le manipuler un peu, on crée un objet
                 // qui va nous servir à ajouter des propriétés et des méthodes si besoin

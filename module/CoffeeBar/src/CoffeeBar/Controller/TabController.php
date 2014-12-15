@@ -63,8 +63,43 @@ class TabController extends AbstractActionController
     public function closeAction()
     {
         $openTabs = $this->serviceLocator->get('OpenTabs') ;
-        $status = $openTabs->invoiceForTable($this->params()->fromRoute('id')) ;
-        return array('result' => $status) ;
+
+        $form = $this->serviceLocator->get('CloseTabForm') ;
+        $request = $this->getRequest() ;
+        $id = (int) $this->params()->fromRoute('id') ;
+
+        // vérifier si on connait le numéro de la table pour laquelle on passe commande
+        if (isset($id)) {
+            $status = $openTabs->invoiceForTable($id) ;
+
+            if($status->hasUnservedItems())
+            {
+                $this->flashMessenger()->addErrorMessage('Il reste des éléments commandés pour cette table');
+                return $this->redirect()->toRoute('tab/status', array('id' => $id));
+            }
+
+            $form->get('id')->setValue($id) ;
+        // sinon, vérifier si le formulaire a été posté
+        } elseif($request->isPost()) {
+            $form->setData($request->getPost()) ;
+            
+            if($form->isValid())
+            {
+                $closeTab = $form->getObject() ;
+                var_dump($closeTab) ;
+//                return $this->redirect()->toRoute('tab/order', array('id' => $openTab->getTableNumber()));
+//            } catch (TabAlreadyOpened $ex) {
+//                $this->flashMessenger()->addErrorMessage($ex->getMessage());
+//                return $this->redirect()->toRoute('tab/open');
+            }
+        // si on ne sait pas pour quelle table on va passer commande, retourner à la page 'Ouvrir une commande'
+        } else {
+            return $this->redirect()->toRoute('tab/opened');
+        }
+
+        $result['status'] = $status ;
+        $result['form'] = $form ;
+        return array('result' => $result) ;
     }
     
     public function listOpenedAction()

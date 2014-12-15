@@ -56,6 +56,7 @@ class TabAggregate implements ListenerAggregateInterface
         $this->listeners[] = $events->attach('foodPrepared', array($this, 'onFoodPrepared')) ;
         $this->listeners[] = $events->attach('markFoodServed', array($this, 'onMarkFoodServed')) ;
         $this->listeners[] = $events->attach('foodServed', array($this, 'onFoodServed')) ;
+        $this->listeners[] = $events->attach('closeTab', array($this, 'onCloseTab')) ;
     }
 
     public function detach(EventManagerInterface $events)
@@ -293,6 +294,16 @@ class TabAggregate implements ListenerAggregateInterface
                 $story->getPreparedFood()->offsetUnset($key) ;
             }
         }
+        $this->saveStory($foodServed->getId(), $story) ;
+    }
+    
+    public function onCloseTab($events)
+    {
+        $closeTab = $events->getParam('closeTab') ;
+
+        $story = $this->loadStory($foodServed->getId()) ;
+        $story->addEvents($foodServed) ;
+        
         $this->saveStory($foodServed->getId(), $story) ;
     }
 

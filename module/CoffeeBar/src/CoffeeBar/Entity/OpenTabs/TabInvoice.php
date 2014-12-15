@@ -37,7 +37,7 @@ class TabInvoice
         return $this->total;
     }
 
-    public function getHasUnservedItems() {
+    public function hasUnservedItems() {
         return $this->hasUnservedItems;
     }
 
