@@ -1,0 +1,178 @@
+Stocker les notes actives
+
+Lorsqu'on passe commande, on crée un objet CoffeeBar\Entity\TabStory\OrderModel. Mais notre modèle manipule un objet PlaceOrder assaini, nettoyé et identifié par le numéro unique de la note. Or, dans l'objet OrderModel, il n'y a pas cet id unique. On va donc stocker nos notes pour pouvoir éventuellement les parcourir et identifier un id unique à partir du numéro de la table (par exemple)
+
+L'objet OpenTabs
+
+L'objet OpenTabs va intercepter les différents événements qui se produisent sur une (les) notes. Pour ce faire, il va implémenter l'interface ListenerAggregateInterface et pour chaque événement, on va définir une méthode à exécuter.
+Contrairement à l'objet TabAggregate qui chargeait dans le cache un nouvel objet TabStory par nouvelle note, l'objet OpenTabs ne va manipuler qu'une seule et même clé (openTabs) dans le cache. Cette clé - nous verrons plus loin - hérite de ArrayObject. Elle aurait pu être un tableau array aussi, mais je voulais manipuler ArrayObject.
+
+// module/CoffeeBar/src/CoffeeBar/Service/OpenTabs.php
+<?php
+namespace CoffeeBar\Service ;
+use Zend\EventManager\EventManagerInterface;
+use Zend\EventManager\ListenerAggregateInterface;
+class OpenTabs implements ListenerAggregateInterface
+{
+    protected $todoByTab ; // TodoByTab pour lister les notes qui s'ouvrent
+    protected $cache ;
+    protected $listeners ;
+    
+    // méthodes obligatoire pour l'interface ListenerAggregateInterface
+    public function attach(EventManagerInterface $events)
+    {
+        $this->listeners[] = $events->attach('tabOpened', array($this, 'onTabOpened'));
+    }
+    public function detach(EventManagerInterface $events)
+    {
+        foreach ($this->listeners as $index => $listener) {
+            if ($events->detach($listener)) {
+                unset($this->listeners[$index]);
+            }
+        }
+    }
+    
+    // injection du cache, pour pouvoir y stocker les données et les en extraire
+    public function setCache($cache)
+    {
+        $this->cache = $cache ;
+    }
+    public function getCache()
+    {
+        return $this->cache ;
+    }
+    
+    // extraction de l'élément 'openTabs' du cache
+    protected function loadTodoByTab()
+    {
+        try {
+            $this->todoByTab = unserialize($this->cache->getItem('openTabs')) ;
+        } catch (MissingKeyException $ex) {
+            echo $ex->getMessage() . ' - openTabs cache key missing' ;
+        }
+    }
+    // stockage des données dans l'élément 'openTabs' du cache
+    protected function saveTodoByTab()
+    {
+        $this->cache->setItem('openTabs', serialize($this->todoByTab)) ;
+    }
+    
+    /**
+     * Listener to tabOpened event
+     * @param Events $events
+     */
+    public function onTabOpened($events)
+    {
+        $to = $events->getParam('tabOpened') ;
+
+        // on charge l'objet ArrayObject du cache
+        $this->loadTodoByTab() ;
+        
+        // on instancie un nouvel objet CoffeeBar\Entity\OpenTabs\Tab
+        $tab = new Tab($to->getTableNumber(), $to->getWaiter(), new ItemsArray(), new ItemsArray(), new ItemsArray()) ;
+        // on ajoute le nouvel objet Tab dans l'objet TodoByTab stocké dans le cache
+        // notez que l'index est l'id qui vient de l'objet TabOpened (c'est l'id unique)
+        $this->todoByTab->offsetSet($to->getId(), $tab) ;
+        $this->saveTodoByTab() ;
+    }
+}
+
+Service Manager
+
+Il reste à charger ce Service dans le service Manager
+
+// module/CoffeeBar/Module
+namespace CoffeeBar;
+class Module
+{
+    public function onBootstrap(MvcEvent $event)
+    {
+        $sm = $event->getApplication()->getServiceManager() ;
+        $em = $sm->get('TabEventManager');
+        // on injecte le gestionnaire d'événements 'TabEventManager'
+        // dans la méthode OpenTabs::attach()
+        $em->attachAggregate($sm->get('OpenTabs')) ;
+        
+        $cache = $sm->get('TabCache') ;
+        // on instancie dans le cache la clé OpenTabs
+        $cache->setOpenTabs(serialize(new TodoByTab())) ;
+    }
+
+    public function getServiceConfig()
+    {
+        return array(
+            'factories' => array(
+                'OpenTabs' => function($sm) {
+                    $cache = $sm->get('Cache\Persistence') ;
+                    $openTabs = new OpenTabs() ;
+                    $openTabs->setCache($cache) ;
+                    return $openTabs ;
+                },
+            ),
+        ) ;
+    }
+}
+
+Instancier la clé dans le cache
+
+// module/CoffeeBar/src/CoffeeBar/Service/TabCacheService.php
+<?php
+namespace CoffeeBar\Service ;
+class TabCacheService
+{
+    public function setOpenTabs($openTabs)
+    {
+        if($this->cache->hasItem('openTabs'))
+        {
+            // j'ai un doute, je pense que cette ligne est inutile...
+            return $this->cache->getItem('openTabs') ;
+        } else {
+            return $this->cache->setItem('openTabs', $openTabs) ;
+        }
+    }
+}
+
+Les nouveaux objets 
+
+// module/CoffeeBar/src/CoffeeBar/Entity/OpenTabs/TodoByTab.php
+<?php
+namespace CoffeeBar\Entity\OpenTabs ;
+use ArrayObject;
+class TodoByTab extends ArrayObject {}
+
+// module/CoffeeBar/src/CoffeeBar/Entity/OpenTabs/Tab.php
+<?php
+namespace CoffeeBar\Entity\OpenTabs ;
+class Tab
+{
+    protected $tableNumber; // int - numéro de la table
+    protected $waiter; // string - nom du serveur
+    protected $itemsToServe; // ItemsArray - liste des éléments à servir
+    protected $itemsInPreparation; // ItemsArray - liste des éléments en préparation
+    protected $itemsServed; // ItemsArray - liste des éléments servis
+    
+    public function __construct($tableNumber, $waiter, ItemsArray $itemsToServe, ItemsArray $itemsInPreparation, ItemsArray $itemsServed)
+    {
+        $this->setTableNumber($tableNumber) ;
+        $this->setWaiter($waiter) ;
+        $this->setItemsToServe($itemsToServe) ;
+        $this->setItemsInPreparation($itemsInPreparation) ;
+        $this->setItemsServed($itemsServed) ;
+    }
+    
+    // getters & setters
+}
+
+// module/CoffeeBar/src/CoffeeBar/Entity/OpenTabs/ItemsArray.php
+<?php
+namespace CoffeeBar\Entity\OpenTabs ;
+use ArrayObject;
+class ItemsArray extends ArrayObject 
+{
+}
+
+Avant de passer à la suite, la présence même de cette liste dans le cache va nous permettre de contrôler, au moment où on ouvre une note, s'il n'y a pas déjà une note ouverte sur le même numéro de table.
+
+
+
+Voyons dans le prochain post enfin comment on fait pour placer notre commande.

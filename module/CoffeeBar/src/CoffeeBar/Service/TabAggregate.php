@@ -105,19 +105,10 @@ class TabAggregate implements ListenerAggregateInterface, EventManagerAwareInter
         $this->cache->setItem($id, serialize($story)) ;
     }
 
-    public function setOpenTabs($openTabs)
-    {
-        $this->openTabs = $openTabs ;
-    }
-
     public function onOpenTab($events)
     {
         $openTab = $events->getParam('openTab') ;
         
-        if($this->openTabs->isTableActive($openTab->getTableNumber())) {
-            throw new TabAlreadyOpened('Tab is already opened') ;
-        }
-      
         $openedTab = new TabOpened() ;
         $openedTab->setId($openTab->getId()) ;
         $openedTab->setTableNumber($openTab->getTableNumber()) ;

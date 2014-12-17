@@ -18,13 +18,22 @@ class TabController extends AbstractActionController
         if($request->isPost()) {
             $form->setData($request->getPost()) ;
             
+            $posted = $request->getPost() ;
+
+            $openTabs = $this->serviceLocator->get('OpenTabs') ;
+
             try {
-                $form->isValid() ;
-                $openTab = $form->getObject() ;
-                return $this->redirect()->toRoute('tab/order', array('id' => $openTab->getTableNumber()));
+                if($openTabs->isTableActive($posted['tableNumber'])) {
+                    throw new TabAlreadyOpened('Tab is already opened') ;
+                }
             } catch (TabAlreadyOpened $e) {
                 $this->flashMessenger()->addErrorMessage($e->getMessage());
                 return $this->redirect()->toRoute('tab/open');
+            }
+            
+            if($form->isValid()) {
+                    $openTab = $form->getObject() ;
+                    return $this->redirect()->toRoute('tab/order', array('id' => $openTab->getTableNumber()));
             }
         }
 

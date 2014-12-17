@@ -66,15 +66,6 @@ class OpenTabs implements ListenerAggregateInterface
         $this->cache->setItem('openTabs', serialize($this->todoByTab)) ;
     }
     
-    protected function setTodoByTab()
-    {
-        try {
-            $this->todoByTab = unserialize($this->cache->getItem('openTabs')) ;
-        } catch (MissingKeyException $ex) {
-            echo $ex->getMessage() . ' - openTabs cache key missing' ;
-        }
-    }
-    
     /**
      * Listener to tabOpened event
      * @param Events $events
@@ -328,17 +319,6 @@ class OpenTabs implements ListenerAggregateInterface
     protected function getTab($guid)
     {
         $this->loadTodoByTab() ;
-        $tabs = $this->todoByTab->getArrayCopy() ;
-        return $tabs[$guid] ;
+        return $this->todoByTab->offsetGet($guid) ;
     }
 }
-
-//    public class OpenTabs : IOpenTabQueries,
-//        ISubscribeTo<TabClosed>
-//    {
-//        public void Handle(TabClosed e)
-//        {
-//            lock (todoByTab)
-//                todoByTab.Remove(e.Id);
-//        }
-//}

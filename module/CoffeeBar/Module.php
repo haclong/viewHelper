@@ -160,7 +160,6 @@ class Module implements FormElementProviderInterface
                     $tab = new TabAggregate() ;
                     $tab->setEventManager($events) ;
                     $tab->setCache($cache) ;
-                    $tab->setOpenTabs($sm->get('OpenTabs')) ;
                     return $tab ;
                 },
                 // parce qu'on veut pouvoir le manipuler un peu, on crée un objet

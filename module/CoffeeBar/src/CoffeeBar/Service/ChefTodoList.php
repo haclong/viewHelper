@@ -64,15 +64,6 @@ class ChefTodoList implements ListenerAggregateInterface
         $this->cache->setItem('todoList', serialize($this->todoList)) ;
     }
     
-    protected function setTodoList()
-    {
-        try {
-            $this->todoList = unserialize($this->cache->getItem('todoList')) ;
-        } catch (MissingKeyException $ex) {
-            echo $ex->getMessage() . ' - todoList cache key missing' ;
-        }
-    }
-    
     public function onFoodOrdered($events)
     {
         $foodOrdered = $events->getParam('foodOrdered') ;

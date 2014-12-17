@@ -10,8 +10,8 @@ namespace CoffeeBar\Entity\TabStory ;
 
 class OrderModel
 {
-    protected $id ; // int
-    protected $items ; // OrderItems
+    protected $id ; // int - table number
+    protected $items ; // array
     
     function getId() {
         return $this->id;

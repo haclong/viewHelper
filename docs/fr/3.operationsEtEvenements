@@ -143,3 +143,135 @@ class OpenTab implements EventManagerAwareInterface
         return array('id', 'waiter', 'tableNumber') ;
     }
 }
+
+
+
+
+
+
+
+
+
+
+        $this->listeners[] = $events->attach('foodPrepared', array($this, 'onFoodPrepared')) ;
+        $this->listeners[] = $events->attach('tabClosed', array($this, 'onTabClosed')) ;
+
+    
+    /**
+     * Move the prepared items from the itemsInPreparation list to the itemsToServe list
+     * @param Events $events
+     */
+    public function onFoodPrepared($events)
+    {
+        $foodPrepared = $events->getParam('foodPrepared') ;
+
+        // on charge l'objet ArrayObject du cache
+        $this->loadTodoByTab() ;
+        // on récupère les données de la tab identifiée par l'id unique
+        $tab = $this->getTab($foodPrepared->getId()) ;
+        
+        foreach($foodPrepared->getFood() as $food)
+        {
+            // pour chaque plat préparé, on ne récupère que le numéro de menu correspondant
+            // il faut pouvoir identifier à quel index se situe cet élément de menu dans la liste des plats en préparation
+            // on pourra ainsi manipuler les objets ArrayObject à partir du moment où on sait de quel index on parle
+            $key = $tab->getItemsInPreparation()->getKeyByMenuNumber($food) ;
+            if($key !== null)
+            {
+                // on récupère l'objet TabItem qui se situe à cet index $key dans l'objet ItemsInPreparation (ArrayObject)
+                $value = $tab->getItemsInPreparation()->offsetGet($key) ;
+                // on reprend l'objet extrait de ItemsInPreparation (ArrayObject) et on le rajoute dans l'objet ItemsToServe (ArrayObject)
+                $tab->getItemsToServe()->addItem($value) ;
+                // on supprime l'objet qui était dans les ItemsInPreparation (ArrayObject) et qui n'y est plus
+                $tab->getItemsInPreparation()->offsetUnset($key) ;
+            }
+        }
+        // on stocke sur le même index (id unique) l'objet Tab mis à jour avec les nouveaux éléments
+        $this->todoByTab->offsetSet($foodPrepared->getId(), $tab) ;
+        $this->saveTodoByTab() ;
+    }
+    
+
+    /**
+     * Listener to tabClosed event
+     * @param Events $events
+     */
+    public function onTabClosed($events)
+    {
+        $tabClosed = $events->getParam('tabClosed') ;
+
+        // on charge l'objet ArrayObject du cache
+        $this->loadTodoByTab() ;
+        // on supprime l'objet Tab qui n'est plus actif
+        $this->todoByTab->offsetUnset($tabClosed->getId()) ;
+        $this->saveTodoByTab() ;
+    }
+
+    /**
+     * Retourne la liste des tables servies
+     * @return ArrayObject
+     */
+    public function activeTableNumbers()
+    {
+        $this->loadTodoByTab() ;
+        $array = array() ;
+        foreach($this->todoByTab->getArrayCopy() as $k => $v)
+        {
+            $array[] = $v->getTableNumber() ;
+        }
+        sort($array) ;
+        return new ArrayObject($array) ;
+    }
+
+    
+    /**
+     * Retourne un booléen si la table est déjà ouverte ou pas
+     * @param int $id - Numéro de la table
+     */
+    public function isTableActive($id)
+    {
+        $activeTableNumbers = $this->activeTableNumbers() ;
+        if(in_array($id, $activeTableNumbers->getArrayCopy()))
+        {
+            return TRUE ;
+        } else {
+            return FALSE ;
+        }
+    }
+    
+    /**
+     * Retourne la liste des éléments à servir
+     * @param string $waiter
+     * @return ArrayObject
+     */
+    public function todoListForWaiter($waiter)
+    {
+        $this->loadTodoByTab() ;
+        $array = array() ;
+        foreach($this->todoByTab->getArrayCopy() as $k => $v)
+        {
+            if($v->getWaiter() == $waiter && count($v->getItemsToServe()) > 0)
+            {
+                $array[$v->getTableNumber()] = $v->getItemsToServe() ;
+            }
+        }
+        return $array ;
+    }
+
+    public function invoiceForTable($table)
+    {
+        $this->loadTodoByTab() ;
+        foreach($this->todoByTab->getArrayCopy() as $k => $v)
+        {
+            if($v->getTableNumber() == $table)
+            {
+                $status = new TabInvoice() ;
+                $status->setTabId($k) ;
+                $status->setTableNumber($v->getTableNumber()) ;
+                $status->setItems($v->getItemsServed()) ;
+                $status->setHasUnservedItems(count($v->getItemsToServe()) + count($v->getItemsInPreparation())) ;
+                return $status ;
+            }
+        }
+        return NULL ;
+    }
