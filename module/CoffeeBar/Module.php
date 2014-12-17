@@ -112,7 +112,6 @@ class Module implements FormElementProviderInterface
                     $openTab = new OpenTab() ;
                     // injection du gestionnaire d’événement dans l’objet OpenTab
                     $openTab->setEventManager($eventsManager) ;
-                    $openTab->setOpenTabs($sm->get('OpenTabs')) ;
                     return $openTab ;
                 },
                 'PlaceOrderForm' => function($sm) {
@@ -161,6 +160,7 @@ class Module implements FormElementProviderInterface
                     $tab = new TabAggregate() ;
                     $tab->setEventManager($events) ;
                     $tab->setCache($cache) ;
+                    $tab->setOpenTabs($sm->get('OpenTabs')) ;
                     return $tab ;
                 },
                 // parce qu'on veut pouvoir le manipuler un peu, on crée un objet

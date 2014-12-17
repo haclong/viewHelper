@@ -1,0 +1,267 @@
+Routes & Vues
+
+Puisque nous y sommes, voyons à quoi va ressembler notre petite application. Précédemment, nous avons défini 
+les règles métiers. Penchons nous maintenant sur les pages du site :
+
+Ouvrir une note : http://coffeebar.com/tab/open
+Passer une commande : http://coffeebar.com/tab/order
+Lister les notes ouvertes et pour chaque note, pouvoir effectuer différentes actions tels 
+que : commander des boissons, commander des plats, annuler soit des boissons, soit des plats et enfin, fermer 
+la note : http://coffeebar.com/tab/opened
+Voir le statut d'une note : http://coffeebar.com/tab/status/{numero_de_table}
+Encaisser une note : http://coffeebar.com/tab/close/{numero_de_table}
+
+Les serveurs doivent chacun être capables de suivre en un coup d'oeil quand les boissons ont été commandées 
+sur les commandes dont il a la charge afin de pouvoir les servir, et quand les plats ont été préparés afin de 
+les servir. http://coffeebar.com/staff/{waiter}. Ajoutons également la page http://coffeebar.com/staff pour 
+lister les serveurs.
+
+Le chef doit savoir quand les plats ont été commandés afin de les préparer. http://coffeebar.com/chef
+
+Les contrôleurs
+
+Les bonnes pratiques conseillent de créer un contrôleur par sujet, afin de bien les séparer. Pour ma part, je 
+distingue trois contrôleurs : TabController, StaffController et ChefController.
+
+N’oubliez pas de déclarer les contrôleurs avec leurs clés respectives dans le fichier de conf.
+// module/CoffeeBar/config/module.config.php
+<?php
+return array(
+    'controllers' => array(
+       'invokables' => array(
+           // the name                 => the component
+           'CoffeeBarController\Tab'   => 'CoffeeBar\Controller\TabController',
+           'CoffeeBarController\Staff' => 'CoffeeBar\Controller\StaffController',
+            ‘CoffeeBarController\Chef’ => ‘CoffeeBar\Controller\ChefController’,
+       ),
+    ),
+   
+    // ... // others keys and arrays...
+);
+
+Créer les vues
+
+Il faut savoir que Zend Framework 2 applique une règle particulière quand il s'agit de convertir les noms des 
+actions, contrôleurs et espace de noms écrits en CamelCase en chemin et nom de fichiers pour les templates des 
+vues.
+
+Ainsi :
+pour CoffeeBar\Controller\TabController::openAction() ;
+on attends ce template : coffee-bar/tab/open.phtml
+
+pour CoffeeBar\Controller\TabController::orderAction() ;
+on attends ce template : coffee-bar/tab/order.phtml
+
+pour CoffeeBar\Controller\TabController::listOpenedAction() ;
+on attends ce template : coffee-bar/tab/list-opened.phtml
+
+pour CoffeeBar\Controller\TabController::statusAction() ;
+on attends ce template : coffee-bar/tab/status.phtml
+
+pour CoffeeBar\Controller\TabController::closeAction() ;
+on attends ce template : coffee-bar/tab/close.phtml
+
+pour CoffeeBar\Controller\StaffController::indexAction() ;
+on attends ce template : coffee-bar/staff/index.phtml
+
+pour CoffeeBar\Controller\StaffController::toDoAction() ;
+on attends ce template : coffee-bar/staff/to-do.phtml
+
+pour CoffeeBar\Controller\ChefController::indexAction() ;
+on attends ce template : coffee-bar/chef/index.phtml
+
+
+Pour le moment, pour chacun de ces templates, nous allons juste ajouter ce script :
+
+<?php echo __FILE__ ; ?>
+
+La configuration
+
+Déclarons nos routes
+
+// module/CoffeeBar/config/module.config.php
+<?php
+return array(
+    'router' => array(
+       'routes' => array(
+           /**
+            * on écrase la route 'home' qui est définie par défaut dans le module Application
+            * voir le fichier /module/Application/config/module.config.php
+            * cette adresse URL mène à cette route : http://coffeebar.home/
+            */
+           'home' => array(
+               'type' => 'Literal',
+               'options' => array(
+                   'route' => '/',
+                   'defaults' => array(
+                       'controller'    => 'CoffeeBarController\Index',
+                       'action'        => 'index',
+                   ),
+               ),
+               'may_terminate' => true,
+           ),
+           'tab' => array(
+               'type' => 'Literal',
+               /**
+                * Cette route ne correspond à aucune page
+                * Notez l'absence d'options 'defaults' parce qu'il n'y a pas de pages valides
+                * à cette adrese : http://coffeebar.com/tab
+                * cette adresse retourne une erreur 404
+                * vous pouvez également décider de définir un contrôleur et une action par défaut
+                * pour éviter l'erreur 404
+                */
+               'options' => array(
+                   'route' => '/tab',
+               ),
+               'child_routes' => array(
+                   /**
+                    * cette URL : http://coffeebar.com/tab/open mène à cette route
+                    */
+                   'open' => array(
+                       'type' => 'Literal',
+                       'options' => array(
+                           'route' => '/open',
+                           'defaults' => array(
+                               'controller'    => 'CoffeeBarController\Tab',
+                               'action'        => 'open',
+                           ),
+                       ),
+                       'may_terminate' => true,
+                   ),
+                   /**
+                    * cette URL : http://coffeebar.com/tab/close/{$id} mène à cette route
+                    */
+                   'close' => array(
+                       'type' => 'Segment',
+                       'options' => array(
+                           'route' => '/close/[:id]',
+                           'constraints' => array(
+                               'id' => '[a-zA-Z0-9_-]+',
+                           ),
+                           'defaults' => array(
+                               'controller'    => 'CoffeeBarController\Tab',
+                               'action'        => 'close',
+                           ),
+                       ),
+                       'may_terminate' => true,
+                   ),
+                   /**
+                    * cette URL : http://coffeebar.com/tab/opened mène à cette route
+                    */
+                   'opened' => array(
+                       'type' => 'Literal',
+                       'options' => array(
+                           'route' => '/opened',
+                           'defaults' => array(
+                               'controller'    => 'CoffeeBarController\Tab',
+                               'action'        => 'listOpened',
+                           ),
+                       ),
+                       'may_terminate' => true,
+                   ),
+               ),
+           ),
+            /**
+             * cetteURL : http://coffeebar.com/staff mène à cette route
+             */
+           'staff' => array(
+               'type' => 'Literal',
+               'options' => array(
+                   'route' => '/staff',
+                        ‘defaults’ => array(
+‘controller’ => ‘CoffeeBarController\Staff’,
+‘action’ => ‘index’,
+               ),
+  ‘may_terminate’ => true,
+               'child_routes' => array(
+                   /**
+                    * cette URL http://coffeebar.com/staff/{$waiter} mène à cette route
+                           */
+                   'todo' => array(
+                       'type' => 'Segment',
+                       'options' => array(
+                           'route' => '/[:name]',
+                           'constraints' => array(
+                               'name' => '[a-zA-Z]+',
+                           ),
+                           'defaults' => array(
+                               'controller'    => 'CoffeeBarController\Staff',
+                               'action'        => 'toDo',
+                           ),
+                       ),
+                       'may_terminate' => true,
+                   ),
+            /**
+             * cette URL http://coffeebar.com/chef mène à cette route : 
+             */
+           ‘chef’ => array(
+               'type' => 'Literal',
+               'options' => array(
+                   'route' => '/chef',
+                        ‘defaults’ => array(
+‘controller’ => ‘CoffeeBarController\Chef’,
+‘action’ => ‘index’,
+               ),
+  ‘may_terminate’ => true,
+
+               ),
+           ),
+       ),
+    ),
+   
+    // ... // others keys and arrays...
+);
+
+Ajoutons également l'objet Navigation qui nous permets de construire facilement la hiérarchie dans les 
+différentes pages de notre site.
+  
+// module/CoffeeBar/config/module.config.php
+<?php
+return array(
+    'navigation' => array(
+       'default' => array(
+           array(
+               'label' => 'Ouvrir une nouvelle note',
+               'route' => 'tab/open', // utiliser les clés du tableau $router
+           ),
+           array(
+               'label' => 'Notes ouvertes',
+               'route' => 'tab/opened',
+           ),
+           array(
+               'label' => 'Staff',
+               'route' => 'staff',
+           ),
+           array(
+               'label' => 'Liste des tâches du chef',
+               'route' => 'chef',
+           ),
+       ),
+    ),
+
+    // ... // others keys and arrays...
+);
+
+La navigation n’est pas dans le Skeletton de base de Zend Framework. Si vous voulez intégrer une navigation 
+dans votre application, voir mon post à ce sujet. Par acquis de conscience, voici ce qu’il faut rajouter dans 
+les différents fichiers (à vérifier…) :
+
+// module/Application/view/layout/layout.phtml
+// remplacer le menu du layout d’origine par ce code
+
+<div class="collapse nav-collapse">
+    <?php echo $this->navigation('navigation')->menu()->setUlClass('nav navbar-nav')->setMaxDepth(0) ;?>
+</div>
+
+// module/Application/config/module.config.php
+// ajouter les clés suivantes :
+'service_manager' => array(
+       'factories' => array(
+           'navigation' => 'Zend\Navigation\Service\DefaultNavigationFactory',
+       ),
+),
+
+Recharger l’application sur le site.
+
+Les différentes entrées chargent bien.
+L’application fonctionne bien.

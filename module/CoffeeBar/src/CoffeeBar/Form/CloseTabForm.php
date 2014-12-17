@@ -27,7 +27,7 @@ class CloseTabForm extends Form
             'name' => 'id',
             'type' => 'hidden',
         )) ;
-
+        
         $this->add(array(
             'name' => 'amountPaid',
             'options' => array(

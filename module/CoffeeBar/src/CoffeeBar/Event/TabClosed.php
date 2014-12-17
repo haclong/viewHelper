@@ -8,12 +8,15 @@
 
 namespace CoffeeBar\Event ;
 
+use DateTime;
+
 class TabClosed
 {
     protected $id;
     protected $amountPaid; // double
     protected $orderValue; // double
     protected $tipValue; // double
+    protected $date ;// DateTime
 
     function getId() {
         return $this->id;
@@ -46,12 +49,12 @@ class TabClosed
     function setTipValue($tipValue) {
         $this->tipValue = $tipValue;
     }
-}
+    
+    public function getDate() {
+        return $this->date;
+    }
 
-//    public class TabClosed
-//    {
-//        public Guid Id;
-//        public decimal AmountPaid;
-//        public decimal OrderValue;
-//        public decimal TipValue;
-//    }
+    public function setDate(DateTime $date) {
+        $this->date = $date;
+    }
+}

@@ -3,6 +3,8 @@
 namespace CoffeeBar\Controller ;
 
 use CoffeeBar\Entity\TabStory\OrderModel;
+use CoffeeBar\Exception\MustPayEnough;
+use CoffeeBar\Exception\TabAlreadyClosed;
 use CoffeeBar\Exception\TabAlreadyOpened;
 use Zend\Mvc\Controller\AbstractActionController;
 
@@ -20,8 +22,8 @@ class TabController extends AbstractActionController
                 $form->isValid() ;
                 $openTab = $form->getObject() ;
                 return $this->redirect()->toRoute('tab/order', array('id' => $openTab->getTableNumber()));
-            } catch (TabAlreadyOpened $ex) {
-                $this->flashMessenger()->addErrorMessage($ex->getMessage());
+            } catch (TabAlreadyOpened $e) {
+                $this->flashMessenger()->addErrorMessage($e->getMessage());
                 return $this->redirect()->toRoute('tab/open');
             }
         }
@@ -70,6 +72,23 @@ class TabController extends AbstractActionController
 
         // vérifier si on connait le numéro de la table pour laquelle on passe commande
         if (isset($id)) {
+            // vérifier si le formulaire a été posté
+            if($request->isPost()) {
+                $form->setData($request->getPost()) ;
+            
+                try {
+                    $form->isValid() ;
+                    $this->flashMessenger()->addMessage('La note a été fermée avec succès');
+                    return $this->redirect()->toRoute('tab/opened');
+                } catch (MustPayEnough $e) {
+                    $this->flashMessenger()->addErrorMessage($e->getMessage());
+                    return $this->redirect()->toRoute('tab/close', array('id' => $id));
+                } catch (TabAlreadyClosed $e) {
+                    $this->flashMessenger()->addErrorMessage($e->getMessage()) ;
+                    return $this->redirect()->toRoute('tab/opened') ;
+                }
+            }
+
             $status = $openTabs->invoiceForTable($id) ;
 
             if($status->hasUnservedItems())
@@ -78,20 +97,8 @@ class TabController extends AbstractActionController
                 return $this->redirect()->toRoute('tab/status', array('id' => $id));
             }
 
-            $form->get('id')->setValue($id) ;
-        // sinon, vérifier si le formulaire a été posté
-        } elseif($request->isPost()) {
-            $form->setData($request->getPost()) ;
-            
-            if($form->isValid())
-            {
-                $closeTab = $form->getObject() ;
-                var_dump($closeTab) ;
-//                return $this->redirect()->toRoute('tab/order', array('id' => $openTab->getTableNumber()));
-//            } catch (TabAlreadyOpened $ex) {
-//                $this->flashMessenger()->addErrorMessage($ex->getMessage());
-//                return $this->redirect()->toRoute('tab/open');
-            }
+            $openTabs = $this->serviceLocator->get('OpenTabs') ;
+            $form->get('id')->setValue($openTabs->tabIdForTable($id)) ;
         // si on ne sait pas pour quelle table on va passer commande, retourner à la page 'Ouvrir une commande'
         } else {
             return $this->redirect()->toRoute('tab/opened');

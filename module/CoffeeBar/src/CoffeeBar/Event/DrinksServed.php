@@ -14,7 +14,7 @@ class DrinksServed
 {
     /**
      *
-     * @var int - table number
+     * @var int - id unique de la note
      */
     protected $id ;
     

@@ -29,7 +29,7 @@ foreach($tab->getItems() as $item)
 
 <?php
 
-$form->setAttribute('action',  $this->url('tab/close')) ;
+$form->setAttribute('action',  $this->url('tab/close', array('id' => $tab->getTableNumber()))) ;
 $form->setAttribute('method', 'post') ;
 
 ?>

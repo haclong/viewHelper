@@ -16,7 +16,7 @@ class MarkFoodPrepared implements EventManagerAwareInterface
 {
     /**
      *
-     * @var int - tableNumber
+     * @var int - id unique
      */
     protected $id ; 
     

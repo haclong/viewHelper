@@ -14,7 +14,7 @@ class FoodPrepared
 {
     /**
      *
-     * @var int - table number
+     * @var int - id unique
      */
     protected $id ;
     

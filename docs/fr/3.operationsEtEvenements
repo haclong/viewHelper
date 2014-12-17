@@ -1,0 +1,145 @@
+Nous avons défini notre scénario et nos différentes événements dans le post précédent.
+
+Pour rappel, voici la liste des événements de l’appli : 
+
+DrinksServed
+FoodPrepared
+FoodServed
+FoodCancelled
+DrinksCancelled
+TabClosed
+
+
+// module/CoffeeBar/src/CoffeeBar/Event/FoodPrepared.php
+namespace CoffeeBar\Event ;
+class FoodPrepared
+{
+protected $id ; // string (guid) 
+protected $food ; // array (liste de numéros de menus)
+}
+
+// module/CoffeeBar/src/CoffeeBar/Event/DrinksServed.php
+namespace CoffeeBar\Event ;
+class DrinksServed
+{
+protected $id ; // string (guid) 
+protected $drinks ; // array (liste de numéros de menus)
+}
+
+// module/CoffeeBar/src/CoffeeBar/Event/FoodServed.php
+namespace CoffeeBar\Event ;
+class FoodServed
+{
+protected $id ; // string (guid) 
+protected $food ; // array (liste de numéros de menus)
+}
+
+// module/CoffeeBar/src/CoffeeBar/Event/TabClosed.php
+namespace CoffeeBar\Event ;
+class TabClosed
+{
+protected $id ; // string (guid) 
+protected $amountPaid ; // float (montant payé)
+protected $orderValue ; // float (total commande)
+protected $tipValue ; // float (pourboire)
+}
+
+Voici tous nos événements.
+Je vous laisse bien évidemment compléter chaque classe avec les getters et setters qui vont bien.
+
+Les opérations
+
+Une fois que les événements ont été définis, il faut maintenant définir les opérations (command en anglais). C’est l’opération qui déclenche un ou plusieurs événements (parce qu’un événement n’arrive jamais tout seul… il faut faire quelquechose pour provoquer l’événement). C’est aussi au niveau de l’opération qu’on peut placer nos exceptions, si le système n’a pas réussi à exécuter ce qu’on lui a demandé de faire.
+
+Fonctionnellement, une opération est une action qu’on fait, en restant au plus près du scénario d’origine. Ainsi, l’exemple le plus clair : on ne commande pas les boissons dans un premier temps puis dans un second temps, on passe commande des plats. L’opération ultime, c’est passer commande. En passant commande, on commande à la fois les boissons et les plats. Après, chacun vit sa vie…
+
+Toutefois au niveau du code, nous verrons que les opérations s’inscrivent dans le modèle événementiel comme de simples événements. Lorsqu’une opération est actionnée (déclenchée), des observeurs réagissents (listeners). Dans le tutoriel, donc, on déclenchera aussi bien des événements que des opérations.
+
+Voici les opérations qu’on peut prévoir pour le scénario présenté :
+
+MarkDrinksServed
+MarkFoodPrepared
+MarkFoodServed
+MarkFoodCancelled
+MarkDrinksCancelled
+CloseTab
+
+// module/CoffeeBar/src/CoffeeBar/Command/MarkFoodPrepared.php
+namespace CoffeeBar\Command ;
+class MarkFoodPrepared
+{
+protected $id ; // string (guid) 
+protected $food ; // array (liste des numéros de menu)
+// l’objet ‘MarkFoodPrepared’ déclenche une opération (événement) ‘markFoodPrepared’
+}
+
+// module/CoffeeBar/src/CoffeeBar/Command/MarkFoodServed.php
+namespace CoffeeBar\Command ;
+class MarkFoodServed
+{
+protected $id ; // string (guid) 
+protected $food ; // array (liste des numéros de menu)
+// l’objet ‘MarkFoodServed’ déclenche une opération (événement) ‘markFoodServed’
+}
+
+// module/CoffeeBar/src/CoffeeBar/Command/MarkDrinksServed.php
+namespace CoffeeBar\Command ;
+class MarkDrinksServed
+{
+protected $id ; // string (guid) 
+protected $drinks ; // array (liste des numéros de menu)
+// l’objet ‘MarkDrinksServed’ déclenche une opération (événement) ‘markDrinksServed’
+}
+
+// module/CoffeeBar/src/CoffeeBar/Command/CloseTab.php
+namespace CoffeeBar\Command ;
+class CloseTab
+{
+protected $id ; // string (guid) 
+protected $amountPaid ; // float (paiement)
+// l’objet ‘CloseTab’’ déclenche une opération (événement) ‘closeTab’
+}
+
+Les exceptions
+
+Parallèlement à ces opérations, n’oublions pas les exceptions au passage :
+
+TableNumberUnavailable : impossible d’ouvrir une note si la table a déjà une note ouverte
+TabNotOpened : impossible de passer commande si la table n’est pas ouverte
+CannotCancelledServedItem : impossible d’annuler un produit servi
+CannotCancelledPreparedItem : impossible d’annuler un produit en préparation
+TabHasUnservedItem : impossible de fermer une note parce qu’il reste des éléments non servis
+MustPayEnough : impossible de fermer une note parce qu’elle n’est pas soldée
+
+Les entités
+
+Enfin, reste les entités à manipuler. Il faudra compter à minima sur les Observers et forcément un Event Manager. L’Event Manager sera la pièce maîtresse de l’appli puisque c’est elle qui va gérer les événements et les observers qui doivent réagir au moment où on déclenche l’événement.
+Il faudra également prévoir une couche de persistence pour pouvoir stocker nos notes ouvertes. Pour cet exercice, nous en profiterons pour tester le cache également.
+
+Voila.
+Quand j’ai commencé ce tutoriel, et cette traduction du code .Net vers un code php ZF2, j’ai d’abord pensé qu’il y avait moins d’entités à manipuler en événementiel qu’en procédural. Je ne sais même pas pourquoi j’ai pensé ça. Nous le verrons par la suite, nous allons créer une multitude de classes. Je ne sais pas si c’est un best practice (très probablement) ou si c’est une caractéristique des développeurs .Net. Je pense qu’on peut se passer d’une grande partie de ces objets et remplacer les résultats par des tableaux qu’on manipule. Mais j’ai tenu à rester au plus près du tutoriel d’origine et chaque classe finalement n’est pas superflue. Quand on le fait, on a le sentiment de redondance mais finalement, chaque objet a véritablement un rôle à tenir.
+
+
+
+
+
+
+
+////
+
+Elle a (pour le moment) deux propriétés : l'id unique de la note et la liste des événements qui ont été déclenchés sur la note. Dans le tutoriel d'origine, seuls les événements sont stockés parce que leur architecture leur permettent de distinguer les opérations des événements. Nous avons pour notre part les mêmes éléments même s'ils sont dans des namespaces différents. On devrait cependant pouvoir ne gérer que les événements, c'est au choix.
+
+
+
+
+L'objet OpenTab a une propriété $events qui est le gestionnaire d'événement. Avec la présence de cette propriété, lorsqu'on voudra sérializer l'objet OpenTab dans l'historique de la note (TabStory), on va obtenir une erreur. Il faut donc ajouter une méthode magique __sleep dans l'objet OpenTab pour contrôler ce qui doit être sérializé.
+
+// module/CoffeeBar/src/CoffeeBar/Command/OpenTab.php
+namespace CoffeeBar\Command ;
+class OpenTab implements EventManagerAwareInterface 
+{
+    public function __sleep()
+    {
+        return array('id', 'waiter', 'tableNumber') ;
+    }
+}

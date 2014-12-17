@@ -1,0 +1,227 @@
+Développer la logique métier - Fermer la note
+
+Une note est fermée quand 
+- tous les plats ont été servis
+- le total de la commande a été payé
+
+Pas de surprise, voyons notre événement TabClosed
+
+// module/CoffeeBar/src/CoffeeBar/Event/TabClosed.php
+<?php
+namespace CoffeeBar\Event ;
+class TabClosed
+{
+    protected $id;
+    protected $amountPaid; // double
+    protected $orderValue; // double
+    protected $tipValue; // double
+
+    // getters et setters
+}
+
+L'opération qui va avec, CloseTab. Cette opération déclenche un événement.
+
+// module/CoffeeBar/src/CoffeeBar/Command/CloseTab.php
+<?php
+namespace CoffeeBar\Command ;
+use Zend\EventManager\EventManagerAwareInterface;
+use Zend\EventManager\EventManagerInterface;
+class CloseTab implements EventManagerAwareInterface
+{
+    protected $id ;
+    protected $amountPaid ;
+    // propriété liées à l’interface EventManagerAwareInterface
+    protected $events ;
+
+    // on va hydrater notre objet CloseTab
+    public function populate($data = array()) {
+        $this->id = (isset($data['id'])) ? $data['id'] : null;
+        $this->amountPaid = (isset($data['amountPaid'])) ? $data['amountPaid'] : null; 
+        $this->events->trigger('closeTab', '', array('closeTab' => $this)) ;
+    }
+    public function getArrayCopy() {
+        return array(
+            'id' => $this->id, 
+            'amountPaid' => $this->amountPaid, 
+                ) ;
+    }
+
+    // méthode définie par l’interface EventManagerAwareInterface
+    public function setEventManager(EventManagerInterface $events)
+    // méthode définie par l’interface EventManagerAwareInterface
+    public function getEventManager()
+}
+
+Notre aggregate
+
+// module/CoffeeBar/src/CoffeeBar/Service/TabAggregate.php
+<?php
+class TabAggregate
+{
+    // les autres méthodes
+    ...
+
+    public function attach(EventManagerInterface $events)
+    {
+        $this->listeners[] = $events->attach('closeTab', array($this, 'onCloseTab')) ;
+        $this->listeners[] = $events->attach('tabClosed', array($this, 'onTabClosed')) ;
+    }
+
+    public function onCloseTab($events)
+    {
+        // récupérer l'objet événement CoffeeBar\Command\CloseTab
+        $closeTab = $events->getParam('closeTab') ;
+
+        // charger l'historique de la note
+        $story = $this->loadStory($closeTab->getId()) ;
+
+        // vérifier le montant encaissé (dans l'objet CloseTab)
+        // est supérieur au total de la note (stocké dans l'historique)
+        // si le client n'a pas payé assez, jeter une exception MustPayEnough
+        if($story->getItemsServedValue() > $closeTab->getAmountPaid())
+        {
+            throw new MustPayEnough('Le solde n\'y est pas, compléter l\'addition') ;
+        }
+        // si la note est déjà fermée, ne pas accepter un autre paiement
+        if(!$story->isTabOpened())
+        {
+            throw new TabAlreadyClosed('La note est fermée') ;
+        }
+
+        $tabClosed = new TabClosed() ;
+        $tabClosed->setId($closeTab->getId()) ;
+        $tabClosed->setAmountPaid($closeTab->getAmountPaid()) ;
+        $tabClosed->setOrderValue($story->getItemsServedValue()) ;
+        // le pourboire est la différence entre le paiement et le total de la note
+        $tabClosed->setTipValue($closeTab->getAmountPaid() - $story->getItemsServedValue()) ;
+        $tabClosed->setDate(new DateTime()) ;
+
+        $this->events->trigger('tabClosed', $this, array('tabClosed' => $tabClosed)) ;
+    }
+    
+    public function onTabClosed($events)
+    {
+        $tabClosed = $events->getParam('tabClosed') ;
+        
+        $story = $this->loadStory($tabClosed->getId()) ;
+        $story->closeTab() ;
+        $this->saveStory($tabClosed->getId(), $story) ;
+    }
+}
+
+Nous avons donc tout les événements et les interactions qui existe au niveau d'une note. Avec cette méthode, on peut facilement enregistrer l'historique d'une note. Pour cela, il suffit de stocker dans une propriété $eventsLoaded les événements qui surviennent.
+
+Stocker les événements.
+
+Dans notre objet TabStory
+
+// module/CoffeeBar/src/CoffeeBar/Entity/TabStory/TabStory.php
+<?php
+class TabStory
+{
+    protected $eventsLoaded ; // array - liste des événements
+
+    public function __construct()
+    {
+        $this->eventsLoaded = array() ;
+    }
+
+    public function addEvents($event) {
+        $this->eventsLoaded[] = $event ;
+    }
+
+    public function getEventsLoaded() {
+        return $this->eventsLoaded ;
+    }
+}
+
+Dans notre aggrégat, lorsqu'on charge l'historique de la note à partir du cache, on va en profiter pour ajouter l'événement à l'historique.
+
+// module/CoffeeBar/src/CoffeeBar/Service/TabAggregate.php
+<?php
+class TabAggregate
+{
+    // les autres méthodes
+    ...
+
+    public function onTabOpened($events)
+    {
+        $tabOpened = $events->getParam('tabOpened') ;
+        $story = $this->loadStory($tabOpened->getId()) ;
+        // stockage de l'événement dans la note
+        $story->addEvents($tabOpened) ;
+        $story->openTab() ;
+        $this->saveStory($tabOpened->getId(), $story) ;
+    }
+    
+    public function onDrinksOrdered($events)
+    {
+        $drinksOrdered = $events->getParam('drinksOrdered') ;
+        
+        $story = $this->loadStory($drinksOrdered->getId()) ;
+        // stockage de l'événement dans la note
+        $story->addEvents($drinksOrdered) ;
+        $story->addOutstandingDrinks($drinksOrdered->getItems()) ;
+        $this->saveStory($drinksOrdered->getId(), $story) ;
+    }
+    
+    public function onFoodOrdered($events)
+    {
+        $foodOrdered = $events->getParam('foodOrdered') ;
+        
+        $story = $this->loadStory($foodOrdered->getId()) ;
+        // stockage de l'événement dans la note
+        $story->addEvents($foodOrdered) ;
+        $story->addOutstandingFood($foodOrdered->getItems()) ;
+        $this->saveStory($foodOrdered->getId(), $story) ;
+    }
+    
+    public function onDrinksServed($events)
+    {
+        $drinksServed = $events->getParam('drinksServed') ;
+        
+        $story = $this->loadStory($drinksServed->getId()) ;
+        $story->addEvents($drinksServed) ;
+
+        // traiter les données
+
+        $this->saveStory($drinksServed->getId(), $story) ;
+    }
+
+    public function onFoodPrepared($events)
+    {
+        $foodPrepared = $events->getParam('foodPrepared') ; 
+        
+        $story = $this->loadStory($foodPrepared->getId()) ;
+        $story->addEvents($foodPrepared) ;
+        
+        // traiter les données
+
+        $this->saveStory($foodPrepared->getId(), $story) ;
+    }
+
+    public function onFoodServed($events)
+    {
+        $foodServed = $events->getParam('foodServed') ; 
+
+        $story = $this->loadStory($foodServed->getId()) ;
+        $story->addEvents($foodServed) ;
+        
+        // traiter les données
+
+        $this->saveStory($foodServed->getId(), $story) ;
+    }
+    
+    public function onTabClosed($events)
+    {
+        $tabClosed = $events->getParam('tabClosed') ;
+        
+        $story = $this->loadStory($tabClosed->getId()) ;
+        $story->addEvents($tabClosed) ;
+        $story->closeTab() ;
+        $this->saveStory($tabClosed->getId(), $story) ;
+    }
+} 
+
+Si on souhaite également stocker les commandes, il faut savoir que vous ne pourrez pas sérializer les objets du namespace CoffeeBar\Command parce que chacun de ces objets a une propriété $events. Il y a quelquechose dans un objet EventManager qui empêche la sérialization. Il faudra alors, pour chaque objets du namespace CoffeeBar\Command ajouter une méthode magique __sleep dans laquelle on définit les propriétés qui doivent être conservées dans la sérialization. 
+

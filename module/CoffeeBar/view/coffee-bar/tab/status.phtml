@@ -3,6 +3,7 @@
 <h2>Table #<?php echo $result->getTableNumber(); ?></h2>
 
 <div><a href="<?php echo $this->url('tab/order', array('id' => $result->getTableNumber())) ;?>">Order Food/Drink</a></div>
+<div><a href="<?php echo $this->url('tab/close', array('id' => $result->getTableNumber())) ;?>">Invoice</a></div>
 
 <h3>Items to serve</h3>
 

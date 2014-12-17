@@ -8,7 +8,6 @@
 
 namespace CoffeeBar\Command ;
 
-use CoffeeBar\Exception\TabAlreadyOpened;
 use DateTime;
 use Zend\EventManager\EventManagerAwareInterface;
 use Zend\EventManager\EventManagerInterface;
@@ -73,11 +72,6 @@ class OpenTab implements EventManagerAwareInterface
         $this->date = $date;
     }
 
-    public function setOpenTabs($openTabs)
-    {
-        $this->openTabs = $openTabs ;
-    }
-    
     // la méthode populate() est obligatoire si on veut utiliser l’hydrator ArraySerializable()
     // Or l’hydrator ArraySerializable est le seul hydrator exposé par Zend Framework qui permet
     // d’hydrater un objet avec une fonction personnalisée
@@ -89,14 +83,7 @@ class OpenTab implements EventManagerAwareInterface
         $this->waiter = (isset($data['waiter'])) ? $data['waiter'] : null; 
         $this->date = new DateTime() ;
         
-        if($this->openTabs->isTableActive($this->tableNumber))
-        {
-            throw new TabAlreadyOpened('Tab is already opened') ;
-        } else {
-            // on déclenche l’événement.
-            // on passera en paramètre l’objet OpenTab que nous venons de définir
-            $this->events->trigger('openTab', '', array('openTab' => $this)) ;
-        }
+        $this->events->trigger('openTab', '', array('openTab' => $this)) ;
     }
 
     // la méthode getArrayCopy() est obligatoire pour l’hydrator ArraySerializable()

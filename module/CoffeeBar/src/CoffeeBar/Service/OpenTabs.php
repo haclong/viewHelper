@@ -32,6 +32,7 @@ class OpenTabs implements ListenerAggregateInterface
         $this->listeners[] = $events->attach('foodPrepared', array($this, 'onFoodPrepared')) ;
         $this->listeners[] = $events->attach('drinksServed', array($this, 'onDrinksServed')) ;
         $this->listeners[] = $events->attach('foodServed', array($this, 'onFoodServed')) ;
+        $this->listeners[] = $events->attach('tabClosed', array($this, 'onTabClosed')) ;
     }
 
     public function detach(EventManagerInterface $events)
@@ -198,6 +199,19 @@ class OpenTabs implements ListenerAggregateInterface
             }
         }
         $this->todoByTab->offsetSet($foodServed->getId(), $tab) ;
+        $this->saveTodoByTab() ;
+    }
+
+    /**
+     * Listener to tabClosed event
+     * @param Events $events
+     */
+    public function onTabClosed($events)
+    {
+        $tabClosed = $events->getParam('tabClosed') ;
+
+        $this->loadTodoByTab() ;
+        $this->todoByTab->offsetUnset($tabClosed->getId()) ;
         $this->saveTodoByTab() ;
     }
 
