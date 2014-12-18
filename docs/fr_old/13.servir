@@ -1,0 +1,233 @@
+Sur la page du statut de la note, on a construit directement dans la vue un petit formulaire, des cases à cocher pour noter quel élément était servi.
+
+Lorsque le formulaire est posté, on récupère un tableau $array avec le numéro identifiant le menu. 
+
+Voyons comment on traite cette information dans le controleur
+
+// module/CoffeeBar/src/CoffeeBar/Controller/TabController.php
+<?php
+namespace CoffeeBar\Controller ;
+class TabController extends AbstractActionController
+{
+    public function servedAction()
+    {
+        $request = $this->getRequest() ; 
+        // si le formulaire a été posté
+        if($request->isPost()) {
+            // récupérer le numéro de la table
+            $id = $request->getPost()->get('tableNumber') ;
+
+            // si aucune checkbox n'a été cochée
+            if(!is_array($request->getPost()->get('served'))) {
+                $this->flashMessenger()->addErrorMessage('Aucun plat ou boisson n\'a été choisi pour servir');
+                return $this->redirect()->toRoute('tab/status', array('id' => $id));
+            }
+            // les checkbox ont été cochée, retrouver les numéros des éléments de menu
+            $menuNumbers = $this->extractMenuNumber($request->getPost()->get('served')) ;
+
+            // servir les boissons (numéro de la table, array numéro des éléments de menu)
+            $this->markDrinksServed($id, $menuNumbers) ;
+            // servir les plats (numéro de la table, array numéro des éléments de menu)
+            $this->markFoodServed($id, $menuNumbers) ;
+        }
+        return $this->redirect()->toRoute('tab/status', array('id' => $id)) ;
+    }
+
+    protected function extractMenuNumber(array $markServedItems)
+    {
+        $array = array() ;
+        foreach($markServedItems as $value)
+        {
+            $groups = explode('_', $value) ;
+            $array[] = $groups[2] ;
+        }
+        return $array ;
+    }
+    
+    protected function markDrinksServed($id, array $menuNumbers)
+    {
+        // récupérer le menu
+        $menu = $this->serviceLocator->get('CoffeeBarEntity\MenuItems') ;
+
+        // récupérer l'id unique de la note
+        $openTabs = $this->serviceLocator->get('OpenTabs') ;
+        $tabId = $openTabs->tabIdForTable($id) ;
+        
+        $drinks = array() ;
+        foreach($menuNumbers as $nb)
+        {
+            if($menu->getById($nb)->getIsDrink())
+            {
+                $drinks[] = $nb ; 
+            }
+        }
+        
+        if(!empty($drinks))
+        {
+            $markServed = $this->serviceLocator->get('MarkDrinksServedCommand') ;
+            $markServed->markServed($tabId, $drinks) ;
+        }
+    }
+    
+    protected function markFoodServed($id, array $menuNumbers)
+    {
+        // récupérer le menu
+        $menu = $this->serviceLocator->get('CoffeeBarEntity\MenuItems') ;
+
+        // récupérer l'id unique de la note
+        $openTabs = $this->serviceLocator->get('OpenTabs') ;
+        $tabId = $openTabs->tabIdForTable($id) ;
+        
+        $food = array() ;
+        foreach($menuNumbers as $nb)
+        {
+            if(!$menu->getById($nb)->getIsDrink())
+            {
+                $food[] = $nb ; 
+            }
+        }
+
+        if(!empty($food))
+        {
+            $markServed = $this->serviceLocator->get('MarkFoodServedCommand') ;
+            $markServed->markServed($tabId, $food) ;
+        }
+    }
+}
+
+Il y a deux éléments qu'on récupère dans le Service manager
+
+// module/CoffeeBar/Module.php
+<?php
+namespace CoffeeBar;
+class Module
+{
+    public function getServiceConfig()
+    {
+        return array(
+            'factories' => array(
+                'MarkDrinksServedCommand' => function($sm) {
+                    $events = $sm->get('TabEventManager') ;
+                    $markDrinksServed = new MarkDrinksServed() ;
+                    $markDrinksServed->setEventManager($events) ;
+                    return $markDrinksServed ;
+                },
+                'MarkFoodServedCommand' => function($sm) {
+                    $events = $sm->get('TabEventManager') ;
+                    $markFoodServed = new MarkFoodServed() ;
+                    $markFoodServed->setEventManager($events) ;
+                    return $markFoodServed ;
+                },
+            ),
+        ) ;
+    }
+}
+
+Ce sont nos deux objets CoffeeBar\Command\MarkDrinksServed et CoffeeBar\Command\MarkFoodServed avec pour chacun l'injection du gestionnaire d'événement. Rappelons nous, chacun de ces objets déclenche un événement, respectivement 'drinksServed' et 'foodServed'.
+
+Voyons ce qu'il se passe au niveau des notes ouvertes.
+
+Les notes actives
+
+// module/CoffeeBar/src/CoffeeBar/Service/OpenTabs.php
+<?php
+namespace CoffeeBar\Service ;
+class OpenTabs implements ListenerAggregateInterface
+{
+    public function attach(EventManagerInterface $events)
+    {
+        $this->listeners[] = $events->attach('drinksServed', array($this, 'onDrinksServed')) ;
+        $this->listeners[] = $events->attach('foodServed', array($this, 'onFoodServed')) ;
+    }
+
+    /**
+     * Move the served items from the itemsToServe list to the itemsServed list
+     * @param Events $events
+     */
+    public function onDrinksServed($events)
+    {
+        $drinksServed = $events->getParam('drinksServed') ;
+
+        // on charge l'objet TodoByTab du cache
+        $this->loadTodoByTab() ;
+        // on récupère l'objet Tab identifié par l'id unique
+        $tab = $this->getTab($drinksServed->getId()) ;
+        
+        foreach($drinksServed->getDrinks() as $drink)
+        {
+            // pour chaque boisson servie, on ne récupère que le numéro de menu correspondant
+            // il faut pouvoir identifier à quel index se situe cet élément de menu dans la liste des plats à servir
+            // on pourra ainsi manipuler les objets ArrayObject à partir du moment où on sait de quel index on parle
+            $key = $tab->getItemsToServe()->getKeyByMenuNumber($drink) ;
+            if($key !== null)
+            {
+                // on récupère l'objet TabItem qui se situe à cet index $key dans l'objet ItemsToServe (ArrayObject)
+                $value = $tab->getItemsToServe()->offsetGet($key) ;
+                // on reprend l'objet extrait de ItemsToServe (ArrayObject) et on le rajoute dans l'objet ItemsServed (ArrayObject)
+                $tab->getItemsServed()->addItem($value) ;
+                // on supprime l'objet qui était dans les ItemsToServe (ArrayObject)
+                $tab->getItemsToServe()->offsetUnset($key) ;
+            }
+        }
+        // on stocke sur le même index (id unique) l'objet Tab mis à jour avec les nouveaux éléments
+        $this->todoByTab->offsetSet($drinksServed->getId(), $tab) ;
+        $this->saveTodoByTab() ;
+    }
+    
+    /**
+     * Move the served items from the itemsToServe list to the itemsServed list
+     * @param Events $events
+     */
+    public function onFoodServed($events)
+    {
+        $foodServed = $events->getParam('foodServed') ;
+
+        // on charge l'objet TodoByTab du cache
+        $this->loadTodoByTab() ;
+        // on récupère l'objet Tab identifié par l'id unique
+        $tab = $this->getTab($foodServed->getId()) ;
+        
+        foreach($foodServed->getFood() as $food)
+        {
+            // pour chaque plat à servir, on ne récupère que le numéro de menu correspondant
+            // il faut pouvoir identifier à quel index se situe cet élément de menu dans la liste des plats à servir
+            // on pourra ainsi manipuler les objets ArrayObject à partir du moment où on sait de quel index on parle
+            $key = $tab->getItemsToServe()->getKeyByMenuNumber($food) ;
+            if($key !== null)
+            {
+                // on récupère l'objet TabItem qui se situe à cet index $key dans l'objet ItemsToServe (ArrayObject)
+                $value = $tab->getItemsToServe()->offsetGet($key) ;
+                // on reprend l'objet extrait de ItemsToServed (ArrayObject) et on le rajoute dans l'objet ItemsServed (ArrayObject)
+                $tab->getItemsServed()->addItem($value) ;
+                // on supprime l'objet qui était dans les ItemsToServe (ArrayObject) et qui n'y est plus
+                $tab->getItemsToServe()->offsetUnset($key) ;
+            }
+        }
+        // on stocke sur le même index (id unique) l'objet Tab mis à jour avec les nouveaux éléments
+        $this->todoByTab->offsetSet($foodServed->getId(), $tab) ;
+        $this->saveTodoByTab() ;
+    }
+}
+
+Une dernière méthode : ItemsArray::getKeybyMenuNumber()
+
+// module/CoffeeBar/src/CoffeeBar/Entity/OpenTabs/ItemsArray.php
+<?php
+namespace CoffeeBar\Entity\OpenTabs ;
+use ArrayObject;
+class ItemsArray extends ArrayObject 
+{
+    public function getKeyByMenuNumber($menuNumber)
+    {
+        $iterator = $this->getIterator() ;
+        
+        foreach($iterator as $key => $value)
+        {
+            if($value->getMenuNumber() == $menuNumber) {
+                return $key ;
+            }
+        }
+    }
+}
+
+On arrive à la fin de notre petite application. Il reste à préparer les plats et à encaisser le client pour clore la note.  

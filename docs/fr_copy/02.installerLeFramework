@@ -1,0 +1,84 @@
+
+Le charger dans le service manager
+
+// module/CoffeeBar/Module.php
+<?php
+namespace CoffeeBar;
+
+use CoffeeBar\Service\TabCacheService;
+
+class Module implements FormElementProviderInterface
+{
+    public function getConfig() //
+
+    public function getAutoloaderConfig() //
+
+    public function getServiceConfig()
+    {
+        return array(
+            'factories' => array(
+                'TabCache' => function($sm) {
+                    $cacheService = $sm->get('Cache\Persistence') ;
+// parce qu’on veut pouvoir le manipuler un peu, on crée un objet qui va nous servir à ajouter des propriétés et des méthodes si besoin est.
+                    $tabCache = new TabCacheService($cacheService) ;
+                    return $tabCache ;
+                },
+            ),
+        ) ;
+    }
+}
+
+Notre objet TabCacheService 
+
+// module/CoffeeBar/src/CoffeeBar/Service/TabCacheService.php
+<?php
+namespace CoffeeBar\Service ;
+
+class TabCacheService
+{
+    // notez la propriété protégée et les accesseurs qui nous permettent ainsi de gérer les dépendances. 
+    protected $cache ;
+    
+    public function getCache() {
+        return $this->cache;
+    }
+
+    // l’injection se fait dans le constructeur : cela permet de rendre l’élément obligatoire au bon fonctionnement de notre service.
+    public function __construct($cache) {
+        $this->cache = $cache;
+    }
+}
+
+Bon... parler de persistence des données est exagérée puisque le cache n'a pas pour ambition de stocker les données à vie... Mais cela suffit bien pour nous ici.
+
+Le gestionnaire d'événement
+
+Enfin, paramétrons notre gestionnaire d'événement. 
+
+L’application montée avec Zend Framework comprend un gestionnaire d’événement par défaut. A ma connaissance, toutefois, celui ci n’est pas ‘nommé’ et vaut par défaut pour tout le monde. Il serait toutefois plus propre de créer un gestionnaire d’événement dédié.
+// module/CoffeeBar/src/CoffeeBar/Service/TabEventManager.php
+<?php
+namespace CoffeeBar\Service ;
+use Zend\EventManager\EventManager;
+
+class TabEventManager extends EventManager
+{
+}
+
+et dans le service manager
+
+// module/CoffeeBar/Module.php
+<?php
+namespace CoffeeBar;
+class Module implements FormElementProviderInterface
+{
+...
+    public function getServiceConfig()
+    {
+        return array(
+            'invokables' => array(
+                'TabEventManager' => 'CoffeeBar\Service\TabEventManager',
+            ),
+        ) ;
+    }
+}
