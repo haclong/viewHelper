@@ -27,7 +27,6 @@ $form->setAttribute('method', 'post') ;
 <div class='form-group'>
     <fieldset>
         <legend><?php $this->formLabel($form->get('items')) ; ?></legend>
-<?php  //echo $this->formCollection($form->get('items')) ; ?>
 <?php
     foreach($form->get('items')->getIterator() as $fieldset)
     {
@@ -36,6 +35,7 @@ $form->setAttribute('method', 'post') ;
         echo $this->formRow($fieldset->get('number')) ;
         echo '</fieldset>' ;
     }
+    // et voici notre aide de vue
     echo $this->MenuItemFormCollection()->renderTemplate($form->get('items'));
 ?>
     </fieldset>

@@ -1,0 +1,88 @@
+Finalement, les plats sont préparés, les boissons et plats sont servis. Il ne reste plus qu'à encaisser le client et clore la note.
+
+Nous sommes désormais dans un process rodé. Nous allons créer un formulaire qui va nous permettre de saisir ce que le client a payé. On vérifiera que tous les plats et boissons de la note ont été servis. Pas question d'encaisser si on a oublié de servir une boisson ! Et au moment d'encaisser, on vérifiera également que le compte y est. On va considérer que si le client donne plus, la différence sera comptabilisée comme pourboire. 
+
+Le formulaire
+
+// module/CoffeeBar/src/CoffeeBar/Form/CloseTabForm.php
+<?php
+namespace CoffeeBar\Form ;
+use Zend\Form\Element\Csrf;
+use Zend\Form\Form;
+use Zend\Stdlib\Hydrator\ArraySerializable;
+class CloseTabForm extends Form
+{
+    public function __construct()
+    {
+        parent::__construct('closetab') ;
+        
+        $this->setAttribute('method', 'post')
+             ->setHydrator(new ArraySerializable()) ;
+        
+        // le champ id est un id unique (guid) caché
+        // il sera généré automatiquement dans la vue
+        $this->add(array(
+            'name' => 'id',
+            'type' => 'hidden',
+        )) ;
+        
+        $this->add(array(
+            'name' => 'amountPaid',
+            'options' => array(
+                'label' => 'Encaissement',
+            ),
+            'attributes' => array(
+                'required' => 'required',
+                'class' => 'form-control',
+            ),
+        )) ;
+        
+        $this->add(new Csrf('security')) ;
+        
+        $this->add(array(
+            'name' => 'submit',
+            'type' => 'Submit',
+            'attributes' => array(
+                'value' => 'Encaisser',
+                'class' => 'btn btn-default',
+            ),
+        )) ;
+    }
+}
+
+Le Service Manager
+
+// module/CoffeeBar/Module.php
+<?php
+namespace CoffeeBar;
+class Module
+{
+    public function getServiceConfig()
+    {
+        return array(
+            'factories' => array(
+                'CloseTabForm' => function($sm) {
+                    $form = new CloseTabForm() ;
+                    $form->setObject($sm->get('CloseTabCommand')) ;
+                    return $form ;
+                },
+                'CloseTabCommand' => function($sm) {
+                    $events = $sm->get('TabEventManager') ;
+                    $closeTab = new CloseTab() ;
+                    $closeTab->setEventManager($events) ;
+                    return $closeTab ;
+                },
+            ),
+        ) ;
+    }
+}
+
+Le controleur
+
+// module/CoffeeBar/src/CoffeeBar/Controller/TabController.php
+<?php
+namespace CoffeeBar\Controller ;
+use CoffeeBar\Entity\TabStory\OrderModel;
+use Zend\Mvc\Controller\AbstractActionController;
+class TabController extends AbstractActionController
+{

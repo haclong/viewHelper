@@ -10,6 +10,9 @@ namespace CoffeeBar\Entity\TabStory ;
 
 class TabStory
 {
+    const CLOSE = false ;
+    const OPEN = true ;
+
     /**
      * Tab Identifiant
      * @var int (Guid)
@@ -17,10 +20,10 @@ class TabStory
     protected $id ;
     
     /**
-     * Count of events loaded
-     * @var int
+     * Tab ouverte ou pas
+     * @var bool
      */
-    protected $eventsCount ;
+    protected $status ;
     
     /**
      * Array of events
@@ -54,7 +57,7 @@ class TabStory
     
     public function __construct()
     {
-        $this->eventsCount = 0 ;
+        $this->status = self::CLOSE ;
         $this->eventsLoaded = array() ;
         $this->outstandingDrinks = new OrderedItems() ;
         $this->outstandingFood = new OrderedItems() ;
@@ -80,10 +83,6 @@ class TabStory
         return $this->id;
     }
 
-    public function getEventsCount() {
-        return $this->eventsCount ;
-    }
-
     public function getEventsLoaded() {
         return $this->eventsLoaded ;
     }
@@ -94,7 +93,6 @@ class TabStory
 
     public function addEvents($event) {
         $this->eventsLoaded[] = $event ;
-        $this->eventsCount++ ;
     }
     
     public function getOutstandingDrinks() {
@@ -132,17 +130,22 @@ class TabStory
             $this->preparedFood->offsetSet(NULL, $item) ;
         }
     }
-
-    public function isEventLoaded($eventName)
+    
+    public function isTabOpened()
     {
-        foreach($this->eventsLoaded as $value)
-        {
-            if($value instanceof $eventName)
-            {
-                return TRUE ;
-            } 
-        }
-        return FALSE ;
+        return $this->status ;
+    }
+    
+    public function openTab()
+    {
+        $this->status = self::OPEN ;
+        return $this ;
+    }
+    
+    public function closeTab()
+    {
+        $this->status = self::CLOSE ;
+        return $this ;
     }
     
     public function areDrinksOutstanding(array $menuNumbers)

@@ -14,7 +14,6 @@ use CoffeeBar\Entity\OpenTabs\Tab;
 use CoffeeBar\Entity\OpenTabs\TabInvoice;
 use CoffeeBar\Entity\OpenTabs\TabItem;
 use CoffeeBar\Entity\OpenTabs\TabStatus;
-use MissingKeyException;
 use Zend\EventManager\EventManagerInterface;
 use Zend\EventManager\ListenerAggregateInterface;
 
@@ -32,6 +31,7 @@ class OpenTabs implements ListenerAggregateInterface
         $this->listeners[] = $events->attach('foodPrepared', array($this, 'onFoodPrepared')) ;
         $this->listeners[] = $events->attach('drinksServed', array($this, 'onDrinksServed')) ;
         $this->listeners[] = $events->attach('foodServed', array($this, 'onFoodServed')) ;
+        $this->listeners[] = $events->attach('tabClosed', array($this, 'onTabClosed')) ;
     }
 
     public function detach(EventManagerInterface $events)
@@ -54,24 +54,11 @@ class OpenTabs implements ListenerAggregateInterface
     
     protected function loadTodoByTab()
     {
-        try {
-            $this->todoByTab = unserialize($this->cache->getItem('openTabs')) ;
-        } catch (MissingKeyException $ex) {
-            echo $ex->getMessage() . ' - openTabs cache key missing' ;
-        }
+        $this->todoByTab = $this->cache->getOpenTabs() ;
     }
     protected function saveTodoByTab()
     {
-        $this->cache->setItem('openTabs', serialize($this->todoByTab)) ;
-    }
-    
-    protected function setTodoByTab()
-    {
-        try {
-            $this->todoByTab = unserialize($this->cache->getItem('openTabs')) ;
-        } catch (MissingKeyException $ex) {
-            echo $ex->getMessage() . ' - openTabs cache key missing' ;
-        }
+        $this->cache->saveOpenTabs(serialize($this->todoByTab)) ;
     }
     
     /**
@@ -202,8 +189,21 @@ class OpenTabs implements ListenerAggregateInterface
     }
 
     /**
+     * Listener to tabClosed event
+     * @param Events $events
+     */
+    public function onTabClosed($events)
+    {
+        $tabClosed = $events->getParam('tabClosed') ;
+
+        $this->loadTodoByTab() ;
+        $this->todoByTab->offsetUnset($tabClosed->getId()) ;
+        $this->saveTodoByTab() ;
+    }
+
+    /**
      * Retourne la liste des tables servies
-     * @return ArrayObject
+     * @return array
      */
     public function activeTableNumbers()
     {
@@ -213,8 +213,8 @@ class OpenTabs implements ListenerAggregateInterface
         {
             $array[] = $v->getTableNumber() ;
         }
-        sort($array) ;
-        return new ArrayObject($array) ;
+        
+        return $array ;
     }
     
     /**
@@ -265,8 +265,7 @@ class OpenTabs implements ListenerAggregateInterface
      */
     public function isTableActive($id)
     {
-        $activeTableNumbers = $this->activeTableNumbers() ;
-        if(in_array($id, $activeTableNumbers->getArrayCopy()))
+        if(in_array($id, $this->activeTableNumbers()))
         {
             return TRUE ;
         } else {
@@ -314,17 +313,6 @@ class OpenTabs implements ListenerAggregateInterface
     protected function getTab($guid)
     {
         $this->loadTodoByTab() ;
-        $tabs = $this->todoByTab->getArrayCopy() ;
-        return $tabs[$guid] ;
+        return $this->todoByTab->offsetGet($guid) ;
     }
 }
-
-//    public class OpenTabs : IOpenTabQueries,
-//        ISubscribeTo<TabClosed>
-//    {
-//        public void Handle(TabClosed e)
-//        {
-//            lock (todoByTab)
-//                todoByTab.Remove(e.Id);
-//        }
-//}

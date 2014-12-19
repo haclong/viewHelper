@@ -3,6 +3,7 @@
 <h2>Table #<?php echo $result->getTableNumber(); ?></h2>
 
 <div><a href="<?php echo $this->url('tab/order', array('id' => $result->getTableNumber())) ;?>">Order Food/Drink</a></div>
+<div><a href="<?php echo $this->url('tab/close', array('id' => $result->getTableNumber())) ;?>">Invoice</a></div>
 
 <h3>Items to serve</h3>
 
@@ -14,28 +15,21 @@ if(count($result->getItemsToServe()) == 0)
     echo 'Pas de commande en cours' ;
 } else {
 ?>
-<form method='post' action='<?php echo $this->url('tab/markserved') ; ?>'> <!-- mark served action table number-->
-<input type='hidden' name='tableNumber' value='<?php echo $result->getTableNumber() ; ?>'/>
     <table>
     <tr>
         <th>Menu #</th>
         <th>Description</th>
-        <th>Mark Served</th>
     </tr>
 <?php
-    $i = 0 ;
     foreach($result->getItemsToServe() as $k=> $v)
     {
         echo "<tr>" ;
         echo "<td>" .$v->getMenuNumber(). "</td>" ;
         echo "<td>" .$v->getDescription() . "</td>" ;
-        echo "<td><input type='checkbox' name='served[]' value='menu_" .$i++. "_" .$v->getMenuNumber(). "'/></td>" ;
         echo "</tr>" ;
     }
 ?>
 </table>
-    <input type='submit' value='Mark served'/>
-</form>
 <?php
 }
 ?>

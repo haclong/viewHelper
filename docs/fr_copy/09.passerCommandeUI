@@ -1,0 +1,28 @@
+
+Le Formulaire
+
+
+Le formulaire PlaceOrderForm est lié à un nouvel objet : OrderModel. En fait, comme au moment où on soumet le formulaire, on ne sait pas encore si ce sont des boissons, des plats ou les deux qui sont commandés, on utilise un objet intermédiaire qu'on retraitera par la suite pour déclencher les événements et assigner les boissons et les plats...
+
+// module/CoffeeBar/src/CoffeeBar/Entity/TabStory/OrderModel.php
+<?php
+namespace CoffeeBar\Entity\TabStory ;
+class OrderModel
+{
+    protected $id ; // int - numéro de la table
+    protected $items ; // array - tableau d'OrderItem
+
+    // méthode obligatoire si on veut utiliser l'hydrator ArraySerializable
+    public function populate($data = array()) {
+        isset($data['id']) ? $this->setId($data['id']) : null;
+        isset($data['items']) ? $this->setItems($data['items']) : null;
+    }
+    
+    // méthode obligatoire si on veut utiliser l'hydrator ArraySerializable
+    public function getArrayCopy() {
+        return array(
+            'id' => $this->id, 
+            'items' => $this->items, 
+                ) ;
+    }
+}

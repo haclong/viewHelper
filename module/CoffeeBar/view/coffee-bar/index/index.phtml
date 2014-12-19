@@ -10,9 +10,9 @@ if(!isset($result))
 ?>
 <pre>
 <?php
-var_dump(unserialize($result->getItem('todoList'))) ;
+var_dump($result->getTodoList()) ;
 
-$openTabs = unserialize($result->getItem('openTabs')) ;
+$openTabs = $result->getOpenTabs() ;
 var_dump($openTabs) ;
 
 foreach($openTabs as $k => $v)

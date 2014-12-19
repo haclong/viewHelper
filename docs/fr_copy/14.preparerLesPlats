@@ -1,0 +1,278 @@
+La préparation des plats revient au cuisinier. Il y a donc une liste dédiée pour lui. Le mécanisme est proche du service CoffeeBar\Service\OpenTabs.
+
+// module/CoffeeBar/src/CoffeeBar/Service/ChefTodoList.php
+<?php
+namespace CoffeeBar\Service;
+use Zend\EventManager\EventManagerInterface;
+use Zend\EventManager\ListenerAggregateInterface;
+class ChefTodoList implements ListenerAggregateInterface
+{
+    protected $todoList ;
+    protected $cache ;
+    protected $listeners ;
+    
+    public function attach(EventManagerInterface $events)
+    {
+        $this->listeners[] = $events->attach('foodOrdered', array($this, 'onFoodOrdered')) ;
+        $this->listeners[] = $events->attach('foodPrepared', array($this, 'onFoodPrepared')) ;
+    }
+    public function detach(EventManagerInterface $events)
+    {
+        foreach ($this->listeners as $index => $listener) {
+            if ($events->detach($listener)) {
+                unset($this->listeners[$index]);
+            }
+        }
+    }
+    
+    public function setCache($cache)
+    {
+        $this->cache = $cache ;
+    }
+    public function getCache()
+    {
+        return $this->cache ;
+    }
+    
+    protected function loadTodoList()
+    {
+        try {
+            $this->todoList = unserialize($this->cache->getItem('todoList')) ;
+        } catch (MissingKeyException $ex) {
+            echo $ex->getMessage() . ' - todoList cache key missing' ;
+        }
+    }
+    protected function saveTodoList()
+    {
+        $this->cache->setItem('todoList', serialize($this->todoList)) ;
+    }
+    
+    public function onFoodOrdered($events)
+    {
+        $foodOrdered = $events->getParam('foodOrdered') ;
+
+        $this->loadTodoList() ;
+        
+        $items = new ArrayObject() ;
+        foreach($foodOrdered->getItems() as $value)
+        {
+            $item = new TodoListItem($value->getId(), $value->getDescription()) ;
+            $items->offsetSet(NULL, $item) ;
+        }
+
+        $group = new TodoListGroup($foodOrdered->getId(), $items) ;
+        
+        $this->todoList->offsetSet(NULL, $group) ;
+        $this->saveTodoList() ;
+    }
+    
+    public function onFoodPrepared($events)
+    {
+        $foodPrepared = $events->getParam('foodPrepared') ;
+
+        $this->loadTodoList() ;
+
+        foreach($this->todoList as $key => $item)
+        {
+            if($item->getTab() == $foodPrepared->getId())
+            {
+                $groupKey = $key ;
+                $group = $item ;
+            }
+        }
+        
+        foreach($foodPrepared->getFood() as $food)
+        {
+            $key = $group->getKeyByMenuNumber($food) ;
+            if($key !== null)
+            {
+                $group->getItems()->offsetUnset($key) ;
+            }
+        }
+        
+        if(count($group->getItems()) == 0)
+        {
+            $this->todoList->offsetUnset($groupKey) ;
+        }
+            
+        $this->saveTodoList() ;
+    }
+    
+    public function getList()
+    {
+        $this->loadTodoList() ;
+        return $this->todoList ;
+    }
+}
+
+Pour le chef, on stocke en cache un objet ArrayObject. Celui-ci est composé d'objets TodoListGroup, lui même composé de l'id unique de la note et d'une liste de TodoListItem.
+
+// module/CoffeeBar/src/CoffeeBar/Entity/ChefTodoList/TodoListItem.php
+<?php
+namespace CoffeeBar\Entity\ChefTodoList;
+class TodoListItem {
+    protected $menuNumber ; // int - numéro du menu
+    protected $description ; // string - nom du menu
+
+    public function __construct($menuNumber, $description)
+    {
+        $this->setMenuNumber($menuNumber) ;
+        $this->setDescription($description) ;
+    }
+
+    // getters & setters
+}
+
+// module/CoffeeBar/src/CoffeeBar/Entity/ChefTodoList/TodoListGroup.php
+<?php
+namespace CoffeeBar\Entity\ChefTodoList;
+use ArrayObject;
+class TodoListGroup {
+    protected $tab ; // int (guid) - id unique de la note
+    protected $items ; // ArrayObject - liste de TodoListItem
+    
+    public function __construct($tab, ArrayObject $items)
+    {
+        $this->setTab($tab) ;
+        $this->setItems($items) ;
+    }
+
+    // getters & setters
+
+    public function getKeyByMenuNumber($menuNumber)
+    {
+        foreach($this->getItems() as $key => $value)
+        {
+            if($value->getMenuNumber() == $menuNumber)
+            {
+                return $key ;
+            }
+        }
+    }
+}
+
+Le Service Manager
+
+// module/CoffeeBar/Module.php
+<?php
+namespace CoffeeBar;
+class Module
+{
+    public function onBootstrap(MvcEvent $event)
+    {
+        $sm = $event->getApplication()->getServiceManager() ;
+        $em = $sm->get('TabEventManager');
+        $em->attachAggregate($sm->get('ChefTodoList')) ;
+        
+        $cache = $sm->get('TabCache') ;
+        $cache->setTodoList(serialize(new ArrayObject())) ;
+    }
+
+    // on charge le service manager
+    public function getServiceConfig()
+    {
+        return array(
+            'factories' => array(
+                'MarkFoodPreparedCommand' => function($sm) {
+                    $events = $sm->get('TabEventManager') ;
+                    $markFoodPrepared = new MarkFoodPrepared() ;
+                    $markFoodPrepared->setEventManager($events) ;
+                    return $markFoodPrepared ;
+                },
+                'ChefTodoList' => function($sm) {
+                    $cache = $sm->get('Cache\Persistence') ;
+                    $todoList = new ChefTodoList() ;
+                    $todoList->setCache($cache) ;
+                    return $todoList ;
+                },
+            ),
+        ) ;
+    }
+}
+
+
+
+Le controleur
+
+// module/CoffeeBar/src/CoffeeBar/Controller/ChefController.php
+<?php
+namespace CoffeeBar\Controller;
+use Zend\Mvc\Controller\AbstractActionController;
+class ChefController extends AbstractActionController
+{
+    public function indexAction()
+    {
+        $todoList = $this->serviceLocator->get('ChefTodoList') ;
+        $list = $todoList->getList() ; // ArrayObject
+        return array('result' => $list) ;
+    }
+    
+    public function markAction()
+    {
+        $request = $this->getRequest() ;    
+        if($request->isPost()) {
+            $id = $request->getPost()->get('id') ;
+
+            if(!is_array($request->getPost()->get('prepared'))) {
+                $this->flashMessenger()->addErrorMessage('Aucun plat ou boisson n\'a été choisi pour servir');
+                return $this->redirect()->toRoute('chef');
+            }
+            
+            $food = array() ;
+            foreach($request->getPost()->get('prepared') as $item)
+            {
+                $groups = explode('_', $item) ;
+                $food[] = $groups[2] ;
+            }
+
+            if(!empty($food))
+            {
+                $markPrepared = $this->serviceLocator->get('MarkFoodPreparedCommand') ;
+                $markPrepared->markPrepared($id, $food) ;
+            }
+        }
+        return $this->redirect()->toRoute('chef') ;
+    }
+}
+
+Le mécanisme est le même que pour servir les plats. La méthode MarkFoodPrepared::markPrepared() déclenche un événement markFoodPrepared qui sera intercepté par les autres objets.
+
+La vue de l'action index, enfin.
+
+// module/CoffeeBar/view/coffee-bar/chef/index.phtml
+<h2>Meals to prepare</h2>
+
+<form action='<?php echo $this->url('chef/markprepared') ; ?>' method='post'>
+<?php
+foreach($result as $group)
+{
+    $i = 0 ;
+?>
+    <input type='hidden' value='<?php echo $group->getTab() ; ?>' name='id'/>
+    <table>
+        <tr>
+            <th>Menu #</th>
+            <th>Description</th>
+            <th>Prepared</th>
+        </tr>
+        <?php
+        foreach($group->getItems() as $item)
+        {
+        ?>
+            <tr>
+            <td><?php echo $item->getMenuNumber() ; ?></td>
+            <td><?php echo $item->getDescription() ; ?></td>
+            <td><input type='checkbox' name='prepared[]' value='prepared_<?php echo $i++ ; ?>_<?php echo $item->getMenuNumber() ; ?>'/></td>
+            </tr>
+        <?php
+        }
+        ?>
+    </table>
+    
+    <input type='submit' name='submit' value='Mark Prepared'/>
+<?php
+}
+?>
+</form>
+
+Cette partie a été faite rapidement mais sommairement, on reprend ce qui a déjà été dit en détail dans les articles précédents. Ce qui est rassurant, c'est que les objets, même s'ils se ressemblent tous, ont tous une fonction unique. Il n'y a pas à retenir quels sont les multiples objets qui utilisent un seul objet, au risque de tout casser.

@@ -1,0 +1,265 @@
+Développer la logique métier - Ouvrir une note
+
+Dans le principe, nous allons rester au plus près de la logique métier. Pour cela, nous allons avoir besoin d'une pièce centrale, une classe TabAggregate.
+
+L'aggrégat écoute les événements qui sont déclencher par les opérations (OpenTab) et mets à jour les informations d'historique sur une note en chargeant la note à partir des notes stockées dans le cache.
+L'aggrégat écoute plusieurs événements différents qui vont tous être déclenchés sur le même Event Manager : il faudra alors utiliser l'interface ListenerAggregateInterface
+L'aggrégat va déclencher lui même d'autres événements en fonction des méthodes qu'il va utiliser : il faudra alors utiliser l'interface EventManagerAwareInterface
+L'aggrégat va avoir besoin du cache pour charger les notes stockées dans le cache et sauvegarder les notes mise à jour : il y a une dépendance avec le cache.
+
+// module/CoffeeBar/src/CoffeeBar/Service/TabAggregate.php
+namespace CoffeeBar\Service ;
+use Zend\EventManager\EventManagerInterface;
+use Zend\EventManager\ListenerAggregateInterface;
+use Zend\EventManager\EventManagerAwareInterface;
+class TabAggregate implements ListenerAggregateInterface, EventManagerAwareInterface
+{
+    protected $listeners = array() ; // voir listenerAggregateInterface
+    protected $events ; // voir EventManagerAwareInterface
+    protected $cache ; // le cache
+
+    // le gestionnaire d'événement $events va être injecté dans le Service Manager
+    // méthode obligatoire si on veut utiliser l'interface EventManagerAwareInterface
+    public function setEventManager(EventManagerInterface $events)
+    {
+        $this->events = $events;
+        return $this;
+    }
+    // méthode obligatoire si on veut utiliser l'interface EventManagerAwareInterface
+    public function getEventManager()
+    {
+        return $this->events;
+    }
+
+    // le paramètre $events va être injecté lorsqu'on attachera cet objet à notre gestionnaire d'événement, en vertu de l'interface ListenerAggregateInterface
+    // méthode obligatoire si on veut utiliser l'interface ListenerAggregateInterface
+    public function attach(EventManagerInterface $events)
+    {
+        // attacher les événements ici + les callback
+    }
+    public function detach(EventManagerInterface $events)
+    {
+        foreach ($this->listeners as $index => $listener) {
+            if ($events->detach($listener)) {
+                unset($this->listeners[$index]);
+            }
+        }
+    } 
+    
+    // le cache va être injecté à partir du Service Manager
+    public function getCache() {
+        return $this->cache;
+    }
+    public function setCache($cache) {
+        $this->cache = $cache;
+    }
+}
+
+Pour stocker une note dans le cache et recharger une note à partir du cache :
+
+    /**
+     * Load the tab story by id
+     * @param string $id - Tab guid
+     */
+    public function loadStory($id)
+    {
+        // on vérifie qu'il existe un élément avec cet id dans le cache
+        if($this->cache->hasItem($id))
+        {
+            // si oui, on retourne l'élément
+            return unserialize($this->cache->getItem($id)) ;
+        // sinon, on instancie un nouvel objet TabStory() auquel on assigne le nouvel $id
+        } else {
+            // pour être propre, on devrait cloner un objet TabStory() et ne pas l'instancier d'ici
+            $story = new TabStory() ; // ne pas oublier de mettre les instructions use à jour
+            $story->setId($id) ;
+            return $story ;
+        }
+    }
+    /**
+     * Stockage en cache
+     * @param string $id - Tab guid
+     * @param string $event - Objet événement
+     */
+    protected function saveStory($id, $story)
+    {   
+        // il faut serializer l'objet $story. Le cache ne prendra pas d'objets.
+        $this->cache->setItem($id, serialize($story)) ;
+    }
+
+Très rapidement, la classe TabStory(). Pour le moment, la classe n'a que deux propriétés.
+
+// module/CoffeeBar/src/CoffeeBar/Entity/TabStory/TabStory.php
+<?php
+namespace CoffeeBar\Entity\TabStory ;
+class TabStory
+{
+    protected $id ; // int (guid) - identifiant unique de la note
+    protected $status ; // bool - si la note est ouverte ou pas
+
+    // définition des constantes
+    const CLOSE = false ;
+    const OPEN = true ;
+
+    // getters & setters
+
+    public function __construct()
+    {
+        // par défaut, la note est fermée
+        $this->status = self::CLOSE ;
+    }
+
+    public function isTabOpened()
+    {
+        return $this->status ;
+    }
+    
+    public function openTab()
+    {
+        // on change le statut
+        $this->status = self::OPEN ;
+        return $this ;
+    }
+    
+    public function closeTab()
+    {
+        $this->status = self::CLOSE ;
+        return $this ;
+    }
+}
+
+Maintenant qu'on a notre gestionnaire d'événements dans lequel on va déclencher nos événements (EventManagerAwareInterface) et où on va écouter (ListenerAggregateInterface) ainsi qu'un cache valide dans lequel on va pouvoir charger et sauvegarder nos différentes notes, on va pouvoir dérouler nos scenarii.
+
+Ouvrir une note
+
+Tous les scénarii commence par l'ouverture d'une note. Créons l'événement TabOpened. On va lui attribuer un id unique (guid), le numéro de la table et le nom du serveur qui s'occupe de la table.
+
+// module/CoffeeBar/src/CoffeeBar/Event/TabOpened.php
+namespace CoffeeBar\Event ;
+class TabOpened
+{
+    protected $id ; // string (guid) 
+    protected $tableNumber ; // string (numéro de la table)
+    protected $waiter ; // string (nom du serveur)
+
+    // getters & setters
+}
+
+En correspondance, on crée l'opération qui déclenche l'événement : OpenTab
+
+// module/CoffeeBar/src/CoffeeBar/Command/OpenTab.php
+namespace CoffeeBar\Command ;
+class OpenTab
+{
+    protected $id ; // string (guid) 
+    protected $tableNumber ; // string (numéro de la table)
+    protected $waiter ; // string (nom du serveur)
+    // l’objet ‘OpenTab’ déclenche une opération (événement) ‘openTab’
+
+    // getters & setters
+}
+
+Voici ce qu'il reste à faire pour l'aggrégat :
+
+class TabAggregate
+{
+    public function attach(EventManagerInterface $events)
+    {
+        // si l'événement 'openTab' est déclenché, la méthode TabAggregate::onOpenTab() s'exécute
+        $this->listeners[] = $events->attach('openTab', array($this, 'onOpenTab'));
+    }
+
+    // quand on déclenche l'événement 'openTab', on crée un objet $events qui est automatiquement passé en paramètre à la méthode callback (ici, onOpenTab()). L'objet $events est composé du nom de l'événement, d'une cible (target) et d'un tableau de paramètres. Nous allons mettre les données utilies à l'événement dans ce tableau de paramètres et nous pourrons les récupérer avec $events->getParam('clé_du_tableau') ;
+    public function onOpenTab($events)
+    {
+        // nous allons récupérer ici un événement de type CoffeeBar\Command\OpenTab
+        $openTab = $events->getParam('openTab') ;
+        
+        // à partir de l'objet OpenTab en entrée, on crée l'événement CoffeeBar\Event\TabOpened
+        $openedTab = new TabOpened() ; // mettre les instructions use à jour
+        $openedTab->setId($openTab->getId()) ;
+        $openedTab->setTableNumber($openTab->getTableNumber()) ;
+        $openedTab->setWaiter($openTab->getWaiter()) ;
+
+        // déclenchement de l'événement tabOpened
+        // comme cet événement intéresse notre aggrégat, il faut rajouter un listener plus haut
+        $this->events->trigger('tabOpened', $this, array('tabOpened' => $openedTab)) ;
+    }
+}
+
+Après avoir géré l'opération openTab, on va gérer l'événement tabOpened, toujours dans l'aggrégat, les codes ci dessous s'ajoutant aux codes précédents.
+
+class TabAggregate
+{
+    public function attach(EventManagerInterface $events)
+    {
+        // si l'événement 'tabOpened' est déclenché, la méthode TabAggregate::onTabOpened() s'exécute
+        $this->listeners[] = $events->attach('tabOpened', array($this, 'onTabOpened'));
+    }
+
+    public function onTabOpened($events)
+    {
+        $tabOpened = $events->getParam('tabOpened') ;
+
+        // chargement du l'historique de la note à partir de son id unique.
+        // comme c'est le premier chargement, notre méthode va instancier un nouvel objet TabStory($id) ;
+        $story = $this->loadStory($tabOpened->getId()) ;
+        $story->openTab() ;
+        $this->saveStory($tabOpened->getId(), $story) ;
+    }
+}
+
+Déclencher une opération OpenTab
+
+Voyons enfin comment l'objet CoffeeBar\Command\OpenTab déclenche un événement 'openTab'
+
+// module/CoffeeBar/src/CoffeeBar/Command/OpenTab.php
+namespace CoffeeBar\Command ;
+use Zend\EventManager\EventManagerAwareInterface;
+use Zend\EventManager\EventManagerInterface;
+// OpenTab déclenche un événement. Il faut donc que l’objet puisse avoir 
+// accès à un Event Manager pour y déclencher l’événement
+class OpenTab implements EventManagerAwareInterface 
+{
+    // propriété liées à l’interface EventManagerAwareInterface
+    protected $events ;
+
+    // la méthode populate() est obligatoire si on veut utiliser l’hydrator ArraySerializable()
+    // Or l’hydrator ArraySerializable est le seul hydrator exposé par Zend Framework qui permet
+    // d’hydrater un objet avec une fonction personnalisée
+    // Nous avons besoin de la fonction personnalisée pour déclencher l’événement au moment
+    // où on hydrate l’objet...
+    public function populate($data = array()) 
+    {
+        $this->id = (isset($data['id'])) ? $data['id'] : null;
+        $this->tableNumber = (isset($data['tableNumber'])) ? $data['tableNumber'] : null;
+        $this->waiter = (isset($data['waiter'])) ? $data['waiter'] : null; 
+        $this->events->trigger('openTab', '', array('openTab' => $this)) ;
+    }
+
+    // la méthode getArrayCopy() est obligatoire pour l’hydrator ArraySerializable()
+    public function getArrayCopy() {
+        return array(
+            'id' => $this->id, 
+            'tableNumber' => $this->tableNumber, 
+            'waiter' => $this->waiter,
+                ) ;
+    }
+
+    // méthode définie par l’interface EventManagerAwareInterface
+    public function setEventManager(EventManagerInterface $events)
+    {
+        $this->events = $events;
+        return $this;
+    }
+     
+    // méthode définie par l’interface EventManagerAwareInterface
+    public function getEventManager()
+    {
+        return $this->events;
+    }
+}
+
+C'est tout pour cette partie.
+
+Nous allons voir dans le prochain article comment passer commande. Le principe est le même mais il y a plus d'éléments en jeu.

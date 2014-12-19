@@ -18,7 +18,7 @@ class MenuItemFieldset extends Fieldset
     {
         $this->add(array(
             'name' => 'id',
-            'type' => 'MenuSelect',
+            'type' => 'MenuSelect', // utiliser la clé qui est dans le manager de formulaire
             'attributes' => array(
                 'class' => 'form-control',
             ),

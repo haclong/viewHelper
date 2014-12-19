@@ -10,12 +10,14 @@
 namespace CoffeeBar;
 
 use ArrayObject;
+use CoffeeBar\Command\CloseTab;
 use CoffeeBar\Command\MarkDrinksServed;
 use CoffeeBar\Command\MarkFoodPrepared;
 use CoffeeBar\Command\MarkFoodServed;
 use CoffeeBar\Command\OpenTab;
 use CoffeeBar\Command\PlaceOrder;
 use CoffeeBar\Entity\OpenTabs\TodoByTab;
+use CoffeeBar\Form\CloseTabForm;
 use CoffeeBar\Form\MenuSelect;
 use CoffeeBar\Form\WaiterSelect;
 use CoffeeBar\Service\ChefTodoList;
@@ -57,18 +59,26 @@ class Module implements FormElementProviderInterface
         );
     }
     
+    // l'interface FormElementProvideInterface a la méthode getFormElementConfig()
     public function getFormElementConfig() {
         return array(
             'factories' => array(
+                // déclarer l'élément de formulaire dans le Manager de formulaire
+                // dans mon exemple, la clé est 'WaiterSelect' 
+                // mais n'importe quelle clé est possible
                 'WaiterSelect' => function($sm) {
                     $serviceLocator = $sm->getServiceLocator() ;
                     $waiters = $serviceLocator->get('CoffeeBarEntity\Waiters') ;
+                    // ici par contre, c'est l'objet CoffeeBar\Form\WaiterSelect
+                    // notez l'injection de l'objet Waiters dans le constructeur
                     $select = new WaiterSelect($waiters) ;
                     return $select ;
                 },
                 'MenuSelect' => function($sm) {
                     $serviceLocator = $sm->getServiceLocator() ;
+                    // CoffeeBarEntity\MenuItems : clé dans le Service Manager
                     $menus = $serviceLocator->get('CoffeeBarEntity\MenuItems') ;
+                    // MenuSelect : objet CoffeeBar\Form\MenuSelect
                     $select = new MenuSelect($menus) ;
                     return $select ;
                 },
@@ -76,29 +86,38 @@ class Module implements FormElementProviderInterface
         );
     }
 
+    // on charge le service manager
     public function getServiceConfig()
     {
         return array(
             'invokables' => array(
                 'CoffeeBarEntity\Waiters' => 'CoffeeBar\Entity\Waiters',
                 'CoffeeBarEntity\MenuItems' => 'CoffeeBar\Entity\MenuItems',
+                // gestionnaire d'événement personnalisé
                 'TabEventManager' => 'CoffeeBar\Service\TabEventManager',
                 'OrderedItems' => 'CoffeeBar\Entity\TabStory\OrderedItems',
                 'OrderedItem' => 'CoffeeBar\Entity\TabStory\OrderedItem',
             ),
             'factories' => array(
+                // formulaire OpenTabForm avec l'instruction setObject()
                 'OpenTabForm' => function($sm) {
                     $formManager = $sm->get('FormElementManager') ;
                     $form = $formManager->get('CoffeeBar\Form\OpenTabForm') ;
+                    // OpenTabCommand : clé dans le Service Manager
                     $form->setObject($sm->get('OpenTabCommand')) ;
                     return $form ;
                 },
                 'OpenTabCommand' => function($sm) {
-                    $tab = $sm->get('TabEventManager') ;
+                    $eventsManager = $sm->get('TabEventManager') ;
                     $openTab = new OpenTab() ;
-                    $openTab->setEventManager($tab) ;
-                    $openTab->setOpenTabs($sm->get('OpenTabs')) ;
+                    // injection du gestionnaire d’événement dans l’objet OpenTab
+                    $openTab->setEventManager($eventsManager) ;
                     return $openTab ;
+                },
+                'PlaceOrderForm' => function($sm) {
+                    $formManager = $sm->get('FormElementManager') ;
+                    $form = $formManager->get('CoffeeBar\Form\PlaceOrderForm') ;
+                    return $form ;
                 },
                 'PlaceOrderCommand' => function($sm) {
                     $events = $sm->get('TabEventManager') ;
@@ -124,33 +143,40 @@ class Module implements FormElementProviderInterface
                     $markFoodServed->setEventManager($events) ;
                     return $markFoodServed ;
                 },
+                'CloseTabForm' => function($sm) {
+                    $form = new CloseTabForm() ;
+                    $form->setObject($sm->get('CloseTabCommand')) ;
+                    return $form ;
+                },
+                'CloseTabCommand' => function($sm) {
+                    $events = $sm->get('TabEventManager') ;
+                    $closeTab = new CloseTab() ;
+                    $closeTab->setEventManager($events) ;
+                    return $closeTab ;
+                },
                 'TabAggregate' => function($sm) {
                     $events = $sm->get('TabEventManager') ;
-                    $cache = $sm->get('Cache\Persistence') ;
+                    $cache = $sm->get('TabCache') ;
                     $tab = new TabAggregate() ;
                     $tab->setEventManager($events) ;
                     $tab->setCache($cache) ;
                     return $tab ;
                 },
-                'PlaceOrderForm' => function($sm) {
-                    $formManager = $sm->get('FormElementManager') ;
-                    $form = $formManager->get('CoffeeBar\Form\PlaceOrderForm') ;
-                    return $form ;
-                },
+                // parce qu'on veut pouvoir le manipuler un peu, on crée un objet
+                // qui va nous servir à ajouter des propriétés et des méthodes si besoin
                 'TabCache' => function($sm) {
                     $cacheService = $sm->get('Cache\Persistence') ;
-                    $tabCache = new TabCacheService() ;
-                    $tabCache->setCache($cacheService) ;
+                    $tabCache = new TabCacheService($cacheService) ;
                     return $tabCache ;
                 },
                 'OpenTabs' => function($sm) {
-                    $cache = $sm->get('Cache\Persistence') ;
+                    $cache = $sm->get('TabCache') ;
                     $openTabs = new OpenTabs() ;
                     $openTabs->setCache($cache) ;
                     return $openTabs ;
                 },
                 'ChefTodoList' => function($sm) {
-                    $cache = $sm->get('Cache\Persistence') ;
+                    $cache = $sm->get('TabCache') ;
                     $todoList = new ChefTodoList() ;
                     $todoList->setCache($cache) ;
                     return $todoList ;

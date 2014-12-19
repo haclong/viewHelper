@@ -3,6 +3,8 @@
 namespace CoffeeBar\Controller ;
 
 use CoffeeBar\Entity\TabStory\OrderModel;
+use CoffeeBar\Exception\MustPayEnough;
+use CoffeeBar\Exception\TabAlreadyClosed;
 use CoffeeBar\Exception\TabAlreadyOpened;
 use Zend\Mvc\Controller\AbstractActionController;
 
@@ -16,13 +18,22 @@ class TabController extends AbstractActionController
         if($request->isPost()) {
             $form->setData($request->getPost()) ;
             
+            $posted = $request->getPost() ;
+
+            $openTabs = $this->serviceLocator->get('OpenTabs') ;
+
             try {
-                $form->isValid() ;
-                $openTab = $form->getObject() ;
-                return $this->redirect()->toRoute('tab/order', array('id' => $openTab->getTableNumber()));
-            } catch (TabAlreadyOpened $ex) {
-                $this->flashMessenger()->addErrorMessage($ex->getMessage());
+                if($openTabs->isTableActive($posted['tableNumber'])) {
+                    throw new TabAlreadyOpened('Tab is already opened') ;
+                }
+            } catch (TabAlreadyOpened $e) {
+                $this->flashMessenger()->addErrorMessage($e->getMessage());
                 return $this->redirect()->toRoute('tab/open');
+            }
+            
+            if($form->isValid()) {
+                    $openTab = $form->getObject() ;
+                    return $this->redirect()->toRoute('tab/order', array('id' => $openTab->getTableNumber()));
             }
         }
 
@@ -32,11 +43,14 @@ class TabController extends AbstractActionController
     
     public function orderAction()
     {
+        // utiliser la clé déclarée dans le Service Manager (classe Module)
         $form = $this->serviceLocator->get('PlaceOrderForm') ;
         $request = $this->getRequest() ;
 
+        // vérifier si on connait le numéro de la table pour laquelle on passe commande
         if ($id = (int) $this->params()->fromRoute('id')) {
             $form->get('id')->setValue($id) ;
+        // sinon, vérifier si le formulaire a été posté
         } elseif($request->isPost()) {
             $form->setData($request->getPost()) ;
             if($form->isValid()) {
@@ -48,6 +62,7 @@ class TabController extends AbstractActionController
                 $placeOrder->placeOrder($openTabs->tabIdForTable($tableNumber), $items) ;
                 return $this->redirect()->toRoute('tab/status', array('id' => $tableNumber));
             }
+        // si on ne sait pas pour quelle table on va passer commande, retourner à la page 'Ouvrir une commande'
         } else {
             return $this->redirect()->toRoute('tab/open');
         }
@@ -59,8 +74,48 @@ class TabController extends AbstractActionController
     public function closeAction()
     {
         $openTabs = $this->serviceLocator->get('OpenTabs') ;
-        $status = $openTabs->invoiceForTable($this->params()->fromRoute('id')) ;
-        return array('result' => $status) ;
+
+        $form = $this->serviceLocator->get('CloseTabForm') ;
+        $request = $this->getRequest() ;
+        $id = (int) $this->params()->fromRoute('id') ;
+
+        // vérifier si on connait le numéro de la table pour laquelle on passe commande
+        if (isset($id)) {
+            // vérifier si le formulaire a été posté
+            if($request->isPost()) {
+                $form->setData($request->getPost()) ;
+            
+                try {
+                    $form->isValid() ;
+                    $this->flashMessenger()->addMessage('La note a été fermée avec succès');
+                    return $this->redirect()->toRoute('tab/opened');
+                } catch (MustPayEnough $e) {
+                    $this->flashMessenger()->addErrorMessage($e->getMessage());
+                    return $this->redirect()->toRoute('tab/close', array('id' => $id));
+                } catch (TabAlreadyClosed $e) {
+                    $this->flashMessenger()->addErrorMessage($e->getMessage()) ;
+                    return $this->redirect()->toRoute('tab/opened') ;
+                }
+            }
+
+            $status = $openTabs->invoiceForTable($id) ;
+
+            if($status->hasUnservedItems())
+            {
+                $this->flashMessenger()->addErrorMessage('Il reste des éléments commandés pour cette table');
+                return $this->redirect()->toRoute('tab/status', array('id' => $id));
+            }
+
+            $openTabs = $this->serviceLocator->get('OpenTabs') ;
+            $form->get('id')->setValue($openTabs->tabIdForTable($id)) ;
+        // si on ne sait pas pour quelle table on va passer commande, retourner à la page 'Ouvrir une commande'
+        } else {
+            return $this->redirect()->toRoute('tab/opened');
+        }
+
+        $result['status'] = $status ;
+        $result['form'] = $form ;
+        return array('result' => $result) ;
     }
     
     public function listOpenedAction()
@@ -75,24 +130,6 @@ class TabController extends AbstractActionController
         $openTabs = $this->serviceLocator->get('OpenTabs') ;
         $status = $openTabs->statusForTable($this->params()->fromRoute('id')) ;
         return array('result' => $status) ;
-    }
-    
-    public function servedAction()
-    {
-        $request = $this->getRequest() ;    
-        if($request->isPost()) {
-            $id = $request->getPost()->get('tableNumber') ;
-
-            if(!is_array($request->getPost()->get('served'))) {
-                $this->flashMessenger()->addErrorMessage('Aucun plat ou boisson n\'a été choisi pour servir');
-                return $this->redirect()->toRoute('tab/status', array('id' => $id));
-            } 
-            $menuNumbers = $this->extractMenuNumber($request->getPost()->get('served')) ;
-
-            $this->markDrinksServed($id, $menuNumbers) ;
-            $this->markFoodServed($id, $menuNumbers) ;
-        }
-        return $this->redirect()->toRoute('tab/status', array('id' => $id)) ;
     }
     
     protected function assignOrderedItems(OrderModel $model)
@@ -112,60 +149,5 @@ class TabController extends AbstractActionController
             }
         }
         return $items ;
-    }
-    
-    protected function extractMenuNumber(array $markServedItems)
-    {
-        $array = array() ;
-        foreach($markServedItems as $value)
-        {
-            $groups = explode('_', $value) ;
-            $array[] = $groups[2] ;
-        }
-        return $array ;
-    }
-    
-    protected function markDrinksServed($id, array $menuNumbers)
-    {
-        $menu = $this->serviceLocator->get('CoffeeBarEntity\MenuItems') ;
-        $openTabs = $this->serviceLocator->get('OpenTabs') ;
-        $tabId = $openTabs->tabIdForTable($id) ;
-        
-        $drinks = array() ;
-        foreach($menuNumbers as $nb)
-        {
-            if($menu->getById($nb)->getIsDrink())
-            {
-                $drinks[] = $nb ; 
-            }
-        }
-        
-        if(!empty($drinks))
-        {
-            $markServed = $this->serviceLocator->get('MarkDrinksServedCommand') ;
-            $markServed->markServed($tabId, $drinks) ;
-        }
-    }
-    
-    protected function markFoodServed($id, array $menuNumbers)
-    {
-        $menu = $this->serviceLocator->get('CoffeeBarEntity\MenuItems') ;
-        $openTabs = $this->serviceLocator->get('OpenTabs') ;
-        $tabId = $openTabs->tabIdForTable($id) ;
-        
-        $food = array() ;
-        foreach($menuNumbers as $nb)
-        {
-            if(!$menu->getById($nb)->getIsDrink())
-            {
-                $food[] = $nb ; 
-            }
-        }
-
-        if(!empty($food))
-        {
-            $markServed = $this->serviceLocator->get('MarkFoodServedCommand') ;
-            $markServed->markServed($tabId, $food) ;
-        }
     }
 }

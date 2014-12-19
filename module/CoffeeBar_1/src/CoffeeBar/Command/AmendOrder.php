@@ -6,4 +6,9 @@
  * and open the template in the editor.
  */
 
-echo __FILE__ ;
+namespace CoffeeBar\Entity ;
+
+class AmendOrder
+{
+    
+}
