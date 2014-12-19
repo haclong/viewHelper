@@ -9,14 +9,12 @@
 namespace CoffeeBar\Service ;
 
 use CoffeeBar\Command\PlaceOrder;
-use CoffeeBar\Entity\TabStory\TabStory;
 use CoffeeBar\Event\DrinksOrdered;
 use CoffeeBar\Event\DrinksServed;
 use CoffeeBar\Event\FoodOrdered;
 use CoffeeBar\Event\FoodPrepared;
 use CoffeeBar\Event\FoodServed;
 use CoffeeBar\Event\TabClosed;
-use CoffeeBar\Event\TabOpened;
 use CoffeeBar\Exception\DrinksNotOutstanding;
 use CoffeeBar\Exception\FoodNotOutstanding;
 use CoffeeBar\Exception\FoodNotPrepared;
@@ -25,33 +23,9 @@ use CoffeeBar\Exception\TabAlreadyClosed;
 use CoffeeBar\Exception\TabAlreadyOpened;
 use CoffeeBar\Exception\TabNotOpen;
 use DateTime;
-use Zend\EventManager\EventManagerAwareInterface;
-use Zend\EventManager\EventManagerInterface;
-use Zend\EventManager\ListenerAggregateInterface;
-
-class TabAggregate implements ListenerAggregateInterface, EventManagerAwareInterface
-{
-    protected $listeners = array() ;
-    protected $events ;
-    protected $id ;
-    protected $cache ;
-
-    public function setEventManager(EventManagerInterface $events)
-    {
-        $this->events = $events;
-        return $this;
-    }
-     
-    public function getEventManager()
-    {
-        return $this->events;
-    }
 
     public function attach(EventManagerInterface $events)
     {
-        // si l'événement 'openTab' est déclenché, la méthode TabAggregate::onOpenTab() s'exécute
-        $this->listeners[] = $events->attach('openTab', array($this, 'onOpenTab'));
-        $this->listeners[] = $events->attach('tabOpened', array($this, 'onTabOpened'));
         $this->listeners[] = $events->attach('placeOrder', array($this, 'onPlaceOrder')) ;
         $this->listeners[] = $events->attach('drinksOrdered', array($this, 'onDrinksOrdered')) ;
         $this->listeners[] = $events->attach('foodOrdered', array($this, 'onFoodOrdered')) ;
@@ -62,69 +36,6 @@ class TabAggregate implements ListenerAggregateInterface, EventManagerAwareInter
         $this->listeners[] = $events->attach('markFoodServed', array($this, 'onMarkFoodServed')) ;
         $this->listeners[] = $events->attach('foodServed', array($this, 'onFoodServed')) ;
         $this->listeners[] = $events->attach('closeTab', array($this, 'onCloseTab')) ;
-    }
-
-    public function detach(EventManagerInterface $events)
-    {
-        foreach ($this->listeners as $index => $listener) {
-            if ($events->detach($listener)) {
-                unset($this->listeners[$index]);
-            }
-        }
-    } 
-    public function getCache() {
-        return $this->cache;
-    }
-
-    public function setCache($cache) {
-        $this->cache = $cache;
-    }
-    
-    /**
-     * Load the tab story by id
-     * @param string $id - Tab guid
-     */
-    public function loadStory($id)
-    {
-        if($this->cache->hasItem($id))
-        {
-            return unserialize($this->cache->getItem($id)) ;
-        } else {
-            $story = new TabStory() ;
-            $story->setId($id) ;
-            return $story ;
-        }
-    }
-    /**
-     * Stockage en cache
-     * @param string $id - Tab guid
-     * @param string $eventName - Event name
-     */
-    protected function saveStory($id, $story)
-    {
-        $this->cache->setItem($id, serialize($story)) ;
-    }
-
-    public function onOpenTab($events)
-    {
-        $openTab = $events->getParam('openTab') ;
-        
-        $openedTab = new TabOpened() ;
-        $openedTab->setId($openTab->getId()) ;
-        $openedTab->setTableNumber($openTab->getTableNumber()) ;
-        $openedTab->setWaiter($openTab->getWaiter()) ;
-        $openedTab->setDate(new DateTime()) ;
-
-        $this->events->trigger('tabOpened', $this, array('tabOpened' => $openedTab)) ;
-    }
-    
-    public function onTabOpened($events)
-    {
-        $tabOpened = $events->getParam('tabOpened') ;
-        $story = $this->loadStory($tabOpened->getId()) ;
-        $story->addEvents($tabOpened) ;
-        $story->openTab() ;
-        $this->saveStory($tabOpened->getId(), $story) ;
     }
     
     public function onPlaceOrder($events)

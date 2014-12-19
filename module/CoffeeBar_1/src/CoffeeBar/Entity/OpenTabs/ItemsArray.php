@@ -23,9 +23,4 @@ class ItemsArray extends ArrayObject
             }
         }
     }
-    
-    public function addItem($item)
-    {
-        $this->offsetSet(NULL, $item) ;
-    }
 }

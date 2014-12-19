@@ -190,31 +190,7 @@ class Module
     }
 }
 
-On a ajouté une méthode dans le cache (la méthode est appelée dans la méthode OnBootstrap de la classe Module)
 
-// module/CoffeeBar/src/CoffeeBar/Service/TabCacheService.php
-<?php
-namespace CoffeeBar\Service ;
-class TabCacheService
-{
-    public function setTodoList($todoList)
-    {
-        if($this->cache->hasItem('todoList'))
-        {
-            return $this->cache->getItem('todoList') ;
-        } else {
-            return $this->cache->setItem('todoList', $todoList) ;
-        }
-    }
-    public function getTodoList()
-    {
-        try {
-            return unserialize($this->cache->getItem('todoList')) ;
-        } catch (MissingKeyException $ex) {
-            echo 'todoList cache key missing' ;
-        }
-    }
-}
 
 Le controleur
 

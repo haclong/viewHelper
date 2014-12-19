@@ -8,6 +8,8 @@
 
 namespace CoffeeBar\Service ;
 
+use Zend\Cache\Exception\MissingKeyException;
+
 class TabCacheService
 {
     // notez la propriété protégé et les accesseurs qui nous permettent de gérer ainsi les dépendances
@@ -33,6 +35,11 @@ class TabCacheService
         }
     }
     
+    public function saveOpenTabs($openTabs)
+    {
+        return $this->cache->setItem('openTabs', $openTabs) ;
+    }
+    
     public function getOpenTabs()
     {
         try {
@@ -52,6 +59,11 @@ class TabCacheService
         }
     }
     
+    public function saveTodoList($todoList)
+    {
+        return $this->cache->setItem('todoList', $todoList) ;
+    }
+    
     public function getTodoList()
     {
         try {
@@ -59,5 +71,18 @@ class TabCacheService
         } catch (MissingKeyException $ex) {
             echo 'todoList cache key missing' ;
         }
+    }
+
+    public function getItem($id)
+    {
+        return $this->cache->getItem($id) ;
+    }
+    public function setItem($id, $datas)
+    {
+        $this->cache->setItem($id, $datas) ;
+    }
+    public function hasItem($id)
+    {
+        return $this->cache->hasItem($id) ;
     }
 }

@@ -14,34 +14,9 @@ use CoffeeBar\Entity\TabStory\OrderItem ;
 
 class MenuItemFieldset extends Fieldset
 {
-    public function init()
-    {
-        $this->add(array(
-            'name' => 'id',
-            'type' => 'MenuSelect', // utiliser la clé qui est dans le manager de formulaire
-            'attributes' => array(
-                'class' => 'form-control',
-            ),
-        )) ;
-    }
-
     public function __construct()
     {
-        parent::__construct('menuItems') ;
-        
         $this->setHydrator(new ClassMethods()) ;
         $this->setObject(new OrderItem()) ;
-        
-        $this->add(array(
-            'name' => 'number',
-            'options' => array(
-                'label' => ' ',
-            ),
-            'attributes' => array(
-                'value' => 1,
-                'class' => 'form-control text-right',
-                'size' => 4,
-            ),
-        )) ;
     }
 }

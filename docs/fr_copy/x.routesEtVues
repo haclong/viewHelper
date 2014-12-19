@@ -84,22 +84,6 @@ Déclarons nos routes
 return array(
     'router' => array(
        'routes' => array(
-           /**
-            * on écrase la route 'home' qui est définie par défaut dans le module Application
-            * voir le fichier /module/Application/config/module.config.php
-            * cette adresse URL mène à cette route : http://coffeebar.home/
-            */
-           'home' => array(
-               'type' => 'Literal',
-               'options' => array(
-                   'route' => '/',
-                   'defaults' => array(
-                       'controller'    => 'CoffeeBarController\Index',
-                       'action'        => 'index',
-                   ),
-               ),
-               'may_terminate' => true,
-           ),
            'tab' => array(
                'type' => 'Literal',
                /**
@@ -114,20 +98,6 @@ return array(
                    'route' => '/tab',
                ),
                'child_routes' => array(
-                   /**
-                    * cette URL : http://coffeebar.com/tab/open mène à cette route
-                    */
-                   'open' => array(
-                       'type' => 'Literal',
-                       'options' => array(
-                           'route' => '/open',
-                           'defaults' => array(
-                               'controller'    => 'CoffeeBarController\Tab',
-                               'action'        => 'open',
-                           ),
-                       ),
-                       'may_terminate' => true,
-                   ),
                    /**
                     * cette URL : http://coffeebar.com/tab/close/{$id} mène à cette route
                     */
@@ -221,10 +191,6 @@ return array(
     'navigation' => array(
        'default' => array(
            array(
-               'label' => 'Ouvrir une nouvelle note',
-               'route' => 'tab/open', // utiliser les clés du tableau $router
-           ),
-           array(
                'label' => 'Notes ouvertes',
                'route' => 'tab/opened',
            ),
@@ -242,26 +208,4 @@ return array(
     // ... // others keys and arrays...
 );
 
-La navigation n’est pas dans le Skeletton de base de Zend Framework. Si vous voulez intégrer une navigation 
-dans votre application, voir mon post à ce sujet. Par acquis de conscience, voici ce qu’il faut rajouter dans 
-les différents fichiers (à vérifier…) :
 
-// module/Application/view/layout/layout.phtml
-// remplacer le menu du layout d’origine par ce code
-
-<div class="collapse nav-collapse">
-    <?php echo $this->navigation('navigation')->menu()->setUlClass('nav navbar-nav')->setMaxDepth(0) ;?>
-</div>
-
-// module/Application/config/module.config.php
-// ajouter les clés suivantes :
-'service_manager' => array(
-       'factories' => array(
-           'navigation' => 'Zend\Navigation\Service\DefaultNavigationFactory',
-       ),
-),
-
-Recharger l’application sur le site.
-
-Les différentes entrées chargent bien.
-L’application fonctionne bien.

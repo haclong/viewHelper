@@ -1,0 +1,275 @@
+En fonction des événements qui se déclenchent dans notre application, nous allons stocker la liste des notes qui sont ouvertes.
+
+NOTE : le long du tutoriel, je vais vous faire rééditer des classes et des vues sur lesquels on sera déjà passé. Il va y avoir des parties qui auront disparu au second passage : typiquement les use, les instructions extends, implements etc... Cela ne veut pas dire qu'il faut les retirer. C'est juste pour alléger le code. S'il faut retirer du code, soit je vous remettrais le passage intégralement, pour voir ce qui a disparu, soit je vous signalerais qu'il faut effacer une ligne pour la remplacer par une autre.
+
+Nous allons créer un service OpenTabs qui va gérer cette liste.
+
+Le service OpenTabs va intercepter les différents événements qui se produisent sur une (les) notes. Pour ce faire, il va implémenter l'interface ListenerAggregateInterface et pour chaque événement, on va définir une méthode à exécuter.
+Contrairement à l'objet TabAggregate qui chargeait dans le cache un nouvel objet TabStory par nouvelle note, l'objet OpenTabs ne va manipuler qu'un seule et même index 'openTabs' dans le cache. Dans cet index, on va manipuler un objet 'CoffeeBar\Entity\OpenTabs\TodoByTab' qui hérite de ArrayObject. (voir 02.installerLeFramework)
+
+Déclarons tout ça dans notre gestionnaire de services. Nous savons déjà que le service OpenTabs doit être déclaré comme observer dans notre gestionnaire d'événements personnalisé (TabEventManager). On fait ce rattachement dans la méthode 'onBootstrap' de la classe Module. 
+Le service OpenTabs - jusqu'à nouvel ordre - ne déclenche aucun événement. Il n'a donc aucune dépendance sur le gestionnaire d'événement. En revanche, il manipule l'index 'openTabs' du cache : il y a donc une dépendance du service OpenTabs sur notre cache personnalisé TabCacheService. Rappelons nous, ce dernier a une clé 'TabCache' dans notre gestionnaire de services.
+
+// module/CoffeeBar/Module
+namespace CoffeeBar;
+use CoffeeBar\Service\OpenTabs;
+class Module
+{
+    // les autres méthodes
+
+    public function onBootstrap(MvcEvent $event)
+    {
+        // cette ligne devrait déjà être présente
+        $sm = $event->getApplication()->getServiceManager() ;
+        // cette ligne devrait déjà être présente
+        $em = $sm->get('TabEventManager');
+        // on injecte le gestionnaire d'événements 'TabEventManager'
+        // dans la méthode OpenTabs::attach()
+        $em->attachAggregate($sm->get('OpenTabs')) ;
+    }
+
+    public function getServiceConfig()
+    {
+        return array(
+            'factories' => array(
+                'OpenTabs' => function($sm) {
+                    $cache = $sm->get('TabCache') ;
+                    $openTabs = new OpenTabs() ;
+                    $openTabs->setCache($cache) ;
+                    return $openTabs ;
+                },
+            ),
+        ) ;
+    }
+}
+
+Maintenant que les services sont mis en place, voyons à quoi ressemble OpenTabs dans les détails.
+
+// module/CoffeeBar/src/CoffeeBar/Service/OpenTabs.php
+<?php
+namespace CoffeeBar\Service ;
+use CoffeeBar\Entity\OpenTabs\ItemsArray;
+use CoffeeBar\Entity\OpenTabs\Tab;
+use Zend\EventManager\EventManagerInterface;
+use Zend\EventManager\ListenerAggregateInterface;
+class OpenTabs implements ListenerAggregateInterface
+{
+    protected $todoByTab ; // TodoByTab pour lister les notes qui s'ouvrent
+    protected $cache ;
+    protected $listeners ;
+    
+    // méthodes obligatoire pour l'interface ListenerAggregateInterface
+    // le paramètre $events est automatiquement poussé dans la méthode lorsqu'on attache l'objet OpenTabs au gestionnaire d'événements. 
+    // ce fonctionnement est automatique grâce à l'interface ListenerAggregateInterface.
+    public function attach(EventManagerInterface $events)
+    {
+        $this->listeners[] = $events->attach('tabOpened', array($this, 'onTabOpened'));
+    }
+    public function detach(EventManagerInterface $events)
+    {
+        foreach ($this->listeners as $index => $listener) {
+            if ($events->detach($listener)) {
+                unset($this->listeners[$index]);
+            }
+        }
+    }
+    
+    // injection du cache, pour pouvoir y stocker les données et les en extraire
+    public function setCache($cache)
+    {
+        $this->cache = $cache ;
+    }
+    public function getCache()
+    {
+        return $this->cache ;
+    }
+    
+    // extraction de l'élément 'openTabs' du cache
+    protected function loadTodoByTab()
+    {
+        $this->todoByTab = $this->cache->getOpenTabs() ;
+    }
+    // stockage des données dans l'élément 'openTabs' du cache
+    protected function saveTodoByTab()
+    {
+        $this->cache->saveOpenTabs(serialize($this->todoByTab)) ;
+    }
+
+    /**
+     * Listener to tabOpened event
+     * @param Events $events
+     */
+    public function onTabOpened($events)
+    {
+        $tabOpened = $events->getParam('tabOpened') ;
+
+        // on charge l'objet ArrayObject du cache
+        $this->loadTodoByTab() ;
+        
+        // on instancie un nouvel objet CoffeeBar\Entity\OpenTabs\Tab
+        $tab = new Tab($tabOpened->getTableNumber(), $tabOpened->getWaiter(), new ItemsArray(), new ItemsArray(), new ItemsArray()) ;
+        // on ajoute le nouvel objet Tab dans l'objet TodoByTab stocké dans le cache
+        // notez que l'index est l'id qui vient de l'objet TabOpened (c'est l'id unique)
+        $this->todoByTab->offsetSet($tabOpened->getId(), $tab) ;
+        $this->saveTodoByTab() ;
+    }
+}
+
+Rappelons nous : l'index 'openTabs' du cache contient un objet 'CoffeeBar\Entity\OpenTabs\TodoByTab'. 
+Lorsque nous faisons : $this->loadTodoByTab(), on récupère cet objet TodoByTab. Celui ci hérite de l'objet ArrayObject.
+Chaque itération de l'objet TodoByTab sera en fait un objet 'CoffeeBar\Entity\OpenTabs\Tab'.
+
+Voyons donc à quoi ressemble 'CoffeeBar\Entity\OpenTabs\Tab'
+
+// module/CoffeeBar/src/CoffeeBar/Entity/OpenTabs/Tab.php
+<?php
+namespace CoffeeBar\Entity\OpenTabs ;
+class Tab
+{
+    protected $tableNumber; // int - numéro de la table
+    protected $waiter; // string - nom du serveur
+    protected $itemsToServe; // ItemsArray - liste des éléments à servir
+    protected $itemsInPreparation; // ItemsArray - liste des éléments en préparation
+    protected $itemsServed; // ItemsArray - liste des éléments servis
+    
+    public function __construct($tableNumber, $waiter, ItemsArray $itemsToServe, ItemsArray $itemsInPreparation, ItemsArray $itemsServed)
+    {
+        $this->setTableNumber($tableNumber) ;
+        $this->setWaiter($waiter) ;
+        $this->setItemsToServe($itemsToServe) ;
+        $this->setItemsInPreparation($itemsInPreparation) ;
+        $this->setItemsServed($itemsServed) ;
+    }
+    
+    // getters & setters
+}
+
+Et jetons également un oeil à ItemsArray
+
+// module/CoffeeBar/src/CoffeeBar/Entity/OpenTabs/ItemsArray.php
+namespace CoffeeBar\Entity\OpenTabs ;
+use ArrayObject;
+class ItemsArray extends ArrayObject 
+{
+    public function addItem($item)
+    {
+        $this->offsetSet(NULL, $item) ;
+    }
+}
+
+Voila.
+
+Dans le cache, il y a une clé 'openTabs' qui est une liste (TodoByTab/ArrayObject). Chaque élément de ArrayObject est un objet Tab qui contient le numéro de la table, le nom du serveur et trois listes : la liste des éléments à servir, la liste des éléments en préparation et la liste des éléments servis. Chaque liste hérite de l'objet ArrayObject.
+
+Lorsqu'on ouvre une note, on crée donc un objet TabStory (créé grâce au service TabAggregate) et on ajoute un élément Tab dans la liste TodoByTab (créé grâce au service OpenTabs).
+
+Je m'excuse pour les noms qui prêtent à confusion. Je n'ai pas pris le temps de prendre du recul sur le tutoriel d'origine et le framework .Net offre des raccourcis que PHP n'a pas (notamment sur les listes d'objets). J'ai du un peu improviser.
+
+Controler les tables occupées
+
+Puisque nous avons enfin la liste des notes ouvertes (donc des tables occupées), nous pouvons controler qu'au moment où on ouvre une nouvelle note, la table n'est pas déjà occupée, afin qu'il n'y ait pas deux notes sur la même table.
+
+Récupérons la liste des tables correspondant à une note ouverte.
+
+// module/CoffeeBar/src/CoffeeBar/Service/OpenTabs.php
+<?php
+namespace CoffeeBar\Service ;
+class OpenTabs 
+{
+    /**
+     * Retourne la liste des tables servies
+     * @return array
+     */
+    public function activeTableNumbers()
+    {
+        $this->loadTodoByTab() ;
+        $array = array() ;
+        foreach($this->todoByTab->getArrayCopy() as $k => $v)
+        {
+            $array[] = $v->getTableNumber() ;
+        }
+        return sort($array) ;
+    }
+}
+
+Et vérifions que la table n'est pas déjà occupée.
+
+// module/CoffeeBar/src/CoffeeBar/Service/OpenTabs.php
+<?php
+namespace CoffeeBar\Service ;
+class OpenTabs 
+{
+    /**
+     * Retourne un booléen si la table est déjà ouverte ou pas
+     * @param int $id - Numéro de la table
+     */
+    public function isTableActive($id)
+    {
+        if(in_array($id, $this->activeTableNumbers()))
+        {
+            return TRUE ;
+        } else {
+            return FALSE ;
+        }
+    }
+}
+
+Utilisons cette méthode dans le controleur, au moment où on ouvre une note. (J'ai beaucoup hésité... j'ai d'abord envisagé mettre ce controle dans l'objet 'CoffeeBar\Command\OpenTab' puisque c'est au moment de déclencher l'événement que je souhaite vérifier si la table est déjà active ou pas. Toutefois, cela créait une dépendance de l'objet OpenTab sur le service OpenTabs. Puis, j'ai pensé qu'il valait mieux déplacer le contrôle dans l'objet TabAggregate. Ainsi, le contrôle aurait pu se déclencer juste avant l'événement 'tabOpened' mais là encore, il y avait une dépendance entre TabAggregate et OpenTabs. Finalement, je m'arrête au controleur qui accède par défaut au gestionnaire de service et qui va nous permettre d'accéder facilement aux différents services.)
+
+// module/CoffeeBar/src/CoffeeBar/Controller/TabController.php
+<?php
+namespace CoffeeBar\Controller ;
+use CoffeeBar\Exception\TabAlreadyOpened;
+use Zend\Mvc\Controller\AbstractActionController;
+class TabController extends AbstractActionController
+{
+    public function openAction()
+    {
+        $form = $this->serviceLocator->get('OpenTabForm') ;
+        $request = $this->getRequest() ;
+
+        if($request->isPost()) {
+            $form->setData($request->getPost()) ;
+            
+            $posted = $request->getPost() ;
+
+            $openTabs = $this->serviceLocator->get('OpenTabs') ;
+
+            try {
+                if($openTabs->isTableActive($posted['tableNumber'])) {
+                    throw new TabAlreadyOpened('Tab is already opened') ;
+                }
+            } catch (TabAlreadyOpened $e) {
+                $this->flashMessenger()->addErrorMessage($e->getMessage());
+                return $this->redirect()->toRoute('tab/open');
+            }
+            
+            if($form->isValid()) {
+                    $openTab = $form->getObject() ;
+                    return $this->redirect()->toRoute('tab/order', array('id' => $openTab->getTableNumber()));
+            }
+        }
+
+        $result['form'] = $form ;
+        return array('result' => $result) ;
+    }
+}
+
+Et voila. 
+L'exception TabAlreadyOpened hérite de la classe Exception.
+
+// module/CoffeeBar/src/CoffeeBar/Exception/TabAlreadyOpened.php
+namespace CoffeeBar\Exception ;
+use Exception;
+class TabAlreadyOpened extends Exception {}
+
+L'exception capturée est envoyée dans l'aide d'action 'flashMessenger()'. Pour l'afficher dans la vue, il suffit d'utiliser l'aide de vue correspondante.
+
+// module/Application/view/layout/layout.phtml
+... html divers
+    <div class="container">
+        <?php echo $this->flashMessenger()->render('error'); ?>
+        <?php echo $this->content; ?>
+...
+
+Avant d'aller plus loin, allons ajouter quelques écrans.

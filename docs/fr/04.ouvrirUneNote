@@ -1,10 +1,12 @@
-Ouvrir une note, côté web
+Dans cet article, nous allons construire un formulaire dont la particularité est de comporter une liste de sélection avec des données personnalisées. Profitons de cette application pour voir comment créer un élément Select de formulaire avec une dépendance.
 
-Nous avons notre logique métier, ajoutons un peu d'interaction. Il nous faut un formulaire, pour ouvrir une note. On va donc préparer un formulaire avec un champ caché (l'id unique de l'objet 'OpenTab'), un champ texte (le numéro de la table) et une liste déroulante (le nom du serveur).
+NOTE : le long du tutoriel, je vais vous faire rééditer des classes et des vues sur lesquels on sera déjà passé. Il va y avoir des parties qui auront disparu au second passage : typiquement les use, les instructions extends, implements etc... Cela ne veut pas dire qu'il faut les retirer. C'est juste pour alléger le code. S'il faut retirer du code, soit je vous remettrais le passage intégralement, pour voir ce qui a disparu, soit je vous signalerais qu'il faut effacer une ligne pour la remplacer par une autre.
 
-Le champ select personnalisé 
+Une note est constituée du numéro de la table (un texte libre), du nom du serveur (une valeur parmi la liste des serveurs du café) et, ça, c'est la valeur technique, l'id unique (guid) de la note. 
 
-Voyons d'abord la liste des serveurs. On va considérer un objet 'Waiters' qui listera les serveurs du café. On peut imaginer que l'objet est lié à une base de données etc.. mais ici, la liste sera en dur.
+L'élément Select
+
+La liste des serveurs du café est un objet 'Waiters' qui contient un tableau (array) avec les noms et les identifiants de chaque serveur du café. On peut imaginer que cette objet 'Waiters' est relié à une base de données et extrait les informations de la base de données. Dans notre cas, la liste va être créée en statique.
 
 // module/CoffeeBar/src/CoffeeBar/Entity/Waiters.php
 <?php
@@ -25,7 +27,35 @@ class Waiters extends ArrayObject
     }
 }
 
-Construisons maintenant l'objet Select personnalisé, qui va lister les données de l'objet 'Waiters'
+Maintenant, on souhaite envoyer cette liste de serveur dans un élément Select sans avoir à ressaisir la liste de nos serveurs.
+
+Dans la documentation de l'élément Select (http://framework.zend.com/manual/current/en/modules/zend.form.elements.html#select), on remplit la liste des valeurs avec la méthode setValueOptions($array)
+
+$select = new Element\Select('mon_element_select') ;
+$select->setValueOptions(array(
+    '0' => 'element1',
+    '1' => 'element2',
+    '2' => 'element3',
+    'clé' => 'valeur',
+));
+
+Ou en utilisant une notation en tableau :
+
+$form->add(array(
+    'type' => 'Select',
+    'options' => array(
+        'value_options' => array(
+            '0' => 'element1',
+            '1' => 'element2',
+            '2' => 'element3',
+            'clé' => 'valeur',
+        ),
+    ),
+)) ;
+
+Notre besoin crucial est de remplacer notre tableau attendu pour value_options par la liste de nos serveurs. Le premier point est de vérifier que notre tableau de serveurs est au bon format 'clé' => 'valeur'... Pas de tableau à plusieurs entrées, et 'valeur' doit être une chaîne de caractère et non pas un objet. 
+
+Avec Zend Framework 2, on crée un élément Select personnalisé, qui hérite de l'objet Select du framework. On va lui injecter notre objet 'Waiters' et on va assigner les valeurs de l'objet 'Waiters' aux valeurs de l'élément Select.
 
 // module/CoffeeBar/src/CoffeeBar/Form/WaiterSelect
 <?php
@@ -53,7 +83,7 @@ class WaiterSelect extends Select
     }
 }
 
-On charge ces entités dans le Service Manager.
+On charge les éléments dans le gestionnaire de services (Service Manager)
 
 // module/CoffeeBar/Module.php
 <?php
@@ -101,16 +131,18 @@ class Module implements FormElementProviderInterface
     }
 }
 
+On va maintenant créer notre formulaire, qui va contenir un élément caché, pour l'id unique, un élément texte pour le numéro de la table et notre élément select personnalisé, pour la liste des serveurs.
+
+
 Le formulaire 
 
-Préparons notre formulaire enfin. L'objet 'OpenTabForm' est un formulaire pour instancier un objet 'OpenTab'. Rappelons nous, quand on a préparé notre objet 'OpenTab', on a décidé d'utiliser l'hydrator 'ArraySerializable'.
+Préparons notre formulaire enfin. 
 
 // module/CoffeeBar/src/CoffeeBar/Form/OpenTabForm.php
 <?php
 namespace CoffeeBar\Form ;
 use Zend\Form\Element\Csrf;
 use Zend\Form\Form;
-use Zend\Stdlib\Hydrator\ArraySerializable;
 class OpenTabForm extends Form
 {
     // la fonction init va charger l'élément de formulaire customisé
@@ -135,8 +167,7 @@ class OpenTabForm extends Form
     {
         parent::__construct('opentab') ;
        
-        $this->setAttribute('method', 'post')
-             ->setHydrator(new ArraySerializable()) ;
+        $this->setAttribute('method', 'post') ;
       
         // le champ id est un id unique (guid) caché
         // il sera généré automatiquement dans la vue
@@ -168,9 +199,7 @@ class OpenTabForm extends Form
     }
 }
 
-Au moment où on monte notre objet 'OpenTabForm', on ne peut pas utiliser '$this->setObject(new OpenTab())' pour la bonne raison que l'objet 'OpenTab' a une dépendance sur le gestionnaire d'événements... 
-
-Dépendance vous avez dit ?? Allons donc directement dans notre Service Manager !!
+Retournons dans le gestionnaire de service pour ajouter le formulaire
 
 // module/CoffeeBar/Module.php
 <?php
@@ -187,34 +216,23 @@ class Module implements FormElementProviderInterface
     public function getServiceConfig()
     {
         return array(
-            'invokables' => array( // les autres invokables...
-            ),
             'factories' => array(
-                // formulaire OpenTabForm avec l'instruction setObject()
                 'OpenTabForm' => function($sm) {
                     // parce que le formulaire OpenTabForm utilise un élément de formulaire personnalisé
                     // il faut utiliser $this->serviceLocator->get('FormElementManager') ;
                     // et utiliser le formulaire à partir du Form Element Manager
                     $formManager = $sm->get('FormElementManager') ;
                     $form = $formManager->get('CoffeeBar\Form\OpenTabForm') ;
-                    // OpenTabCommand : clé dans le Service Manager
-                    $form->setObject($sm->get('OpenTabCommand')) ;
                     return $form ;
-                },
-                // CoffeeBar\Command\OpenTab avec la dépendance sur le gestionnaire d'événements
-                'OpenTabCommand' => function($sm) {
-                    $eventsManager = $sm->get('TabEventManager') ;
-                    $openTab = new OpenTab() ;
-                    // injection du gestionnaire d’événement dans l’objet OpenTab
-                    $openTab->setEventManager($eventsManager) ;
-                    return $openTab ;
                 },
             ),
         ) ;
     }
 }
 
-Et enfin le controller.
+Le controleur
+
+Allons maintenant dans le controleur. 
 
 // module/CoffeeBar/src/CoffeeBar/Controller/TabController.php
 <?php
@@ -226,6 +244,7 @@ class TabController extends AbstractActionController
     {
         // récupérer le formulaire dans le ServiceManager
         $form = $this->serviceLocator->get('OpenTabForm') ;
+
         $request = $this->getRequest() ;
 
         // si le formulaire a été posté
@@ -233,12 +252,8 @@ class TabController extends AbstractActionController
             // assigné les données du tableau $_POST aux éléments du formulaire
             $form->setData($request->getPost()) ;
             
-            // si le formulaire est valide, hydraté l'objet qui est lié au formulaire (OpenTab)
             if($form->isValid()) {
-                $openTab = $form->getObject() ;
-                // on redirige directement vers la page de prise de commande
-                // notez qu'on passe en paramètre le numéro de la table
-                return $this->redirect()->toRoute('tab/order', array('id' => $openTab->getTableNumber()));
+                // traiter les données du formulaire
             } 
         }
 
@@ -247,7 +262,8 @@ class TabController extends AbstractActionController
     }
 }
 
-Et la vue
+Il reste la vue à compléter :
+
 // module/CoffeeBar/view/coffee-bar/tab/open.phtml
 <h1>Ouvrir une nouvelle note</h1>
 
@@ -280,49 +296,16 @@ echo $this->formRow($form->get('submit')) ;
 echo $this->form()->closeTag() ;
 ?>
 
-Et voila...
-Le formulaire est fini. Nous avons un formulaire qui crée un objet OpenTab. Le formulaire a un champ personnalisé avec des données qui viennent d'un autre objet (Waiters). Le formulaire est lié à l'objet 'CoffeeBar\Command\OpenTab' qui, une fois hydraté, déclenchera le premier événement. Mais encore faudrait il que notre gestionnaire d'événements sache que notre aggregat (TabAggregate) doit écouter les événements qui sont déclenchés...
 
-Attacher le listener au gestionnaire d'événements.
+Et voila.
+Notre formulaire est fini.
 
-Retour au module 
-// module/CoffeeBar/Module.php
-class Module
-{
-    // la fonction onBootstrap est une fonction qui est chargée dans l'application.
-    // elle admet en argument un objet de type MvcEvent systématiquement.
-    public function onBootstrap(MvcEvent $event)
-    {
-        $sm = $event->getApplication()->getServiceManager() ;
-        $em = $sm->get('TabEventManager');
-        // parce qu'on utilise EventManager::attachAggregate, 
-        // on injecte automatiquement l'objet 'TabEventManager' en argument de la méthode TabAggregate::attach
-        // grâce à l'interface ListenerAggregateInterface
-        $em->attachAggregate($sm->get('TabAggregate')) ;
-    }
+Ainsi, pour personnaliser un élément select, il faut
+- un objet métier avec la liste des valeurs
+- s'assurer que cet objet retourne un tableau à une dimension : 'clé' => 'valeur' (soit par défaut, soit avec une méthode dédiée)
+- créer un élément select personnalisé, qui hérite de Zend\Form\Element\Select
+- implémenter l'interface FormElementProviderInterface dans la classe Module 
+- injecter les dépendances dans la configuration des éléments de formulaire getFormElementConfig()
+- utiliser le gestionnaire de formulaire 'FormElementManager' qui va se trouver dans le gestionnaire de service.
 
-    public function getServiceConfig()
-    {
-        return array(
-            'invokables' => array(
-                'TabEventManager' => 'CoffeeBar\Service\TabEventManager',
-            ),
-            'factories' => array(
-                'TabAggregate' => function($sm) {
-                    $events = $sm->get('TabEventManager') ;
-                    $cache = $sm->get('Cache\Persistence') ;
-                    $tab = new TabAggregate() ;
-                    // propriété TabAggregate::$events
-                    $tab->setEventManager($events) ;
-                    // propriété TabAggregate::$cache
-                    $tab->setCache($cache) ;
-                    // pour la propriété TabAggregate::$listeners
-                    // voir dans la méthode Module::onBootstrap
-                    return $tab ;
-                },
-            ),
-        ) ;
-    }
-}
-
-Une fois que notre note est ouverte, nous pouvons passer commande. Le prochain formulaire présente l'intérêt de développer un groupe d'éléments de formulaire qu'on pourra incrémenter à l'envi, pour pouvoir ajouter autant d'ensemble qu'on le souhaite.
+Voyons comment on traite notre formulaire à présent.

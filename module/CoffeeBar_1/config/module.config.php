@@ -10,22 +10,6 @@
 return array(
     'router' => array(
         'routes' => array(
-            /**
-             * on écrase la route 'home' qui est définie par défaut dans Application
-             * voir le fichier /module/Application/config/module.config.php
-             * cette adresse URL mène à la route http://coffeebar.home/
-             */
-                    'home' => array(
-                        'type' => 'Literal',
-                        'options' => array(
-                            'route' => '/',
-                            'defaults' => array(
-                                'controller'    => 'CoffeeBarController\Index',
-                                'action'        => 'index',
-                            ),
-                        ),
-                        'may_terminate' => true,
-                    ),
                     'tab' => array(
                         /**
                          * cette route ne correspond à aucune page
@@ -40,20 +24,6 @@ return array(
                             'route' => '/tab',
                         ),
                         'child_routes' => array(
-                            /**
-                             * cette URL (http://coffeebar.com/tab/open) mène à cette route
-                             */
-                            'open' => array(
-                                'type' => 'Literal',
-                                'options' => array(
-                                    'route' => '/open',
-                                    'defaults' => array(
-                                        'controller'    => 'CoffeeBarController\Tab',
-                                        'action'        => 'open',
-                                    ),
-                                ),
-                                'may_terminate' => true,
-                            ),
                             /**
                              * cette URL : http://coffeebar.home/tab/order mène à cette route
                              */
@@ -86,59 +56,6 @@ return array(
                                     ),
                                 ),
                                 'may_terminate' => true,
-                            ),
-                            /**
-                             * cette URL : http://coffeebar.home/tab/opened mène à cette route
-                             */
-                            'opened' => array(
-                                'type' => 'Literal',
-                                'options' => array(
-                                    'route' => '/opened',
-                                    'defaults' => array(
-                                        'controller'    => 'CoffeeBarController\Tab',
-                                        'action'        => 'listOpened',
-                                    ),
-                                ),
-                                'may_terminate' => true,
-                            ),
-                            /**
-                             * cette URL : http://coffeebar.home/tab/status mène à cette route
-                             */
-                            'status' => array(
-                                'type' => 'Segment',
-                                'options' => array(
-                                    'route' => '/status/[:id]',
-                                    'defaults' => array(
-                                        'controller'    => 'CoffeeBarController\Tab',
-                                        'action'        => 'status',
-                                    ),
-                                ),
-                            ),
-                            /**
-                             * cette URL : http://coffeebar.home/tab/markserved mène à cette route
-                             */
-                            'markserved' => array(
-                                'type' => 'Literal',
-                                'options' => array(
-                                    'route' => '/mark',
-                                    'defaults' => array(
-                                        'controller'    => 'CoffeeBarController\Tab',
-                                        'action'        => 'served',
-                                    ),
-                                ),
-                            ),
-                        ),
-                    ),
-                    /**
-                     * cette URL : http://coffeebar.home/flush mène à cette route
-                     */
-                    'flush' => array(
-                        'type' => 'Literal',
-                        'options' => array(
-                            'route' => '/flush',
-                            'defaults' => array(
-                                'controller'  => 'CoffeeBarController\Index',
-                                'action'      => 'flush',
                             ),
                         ),
                     ),
@@ -173,6 +90,16 @@ return array(
                                 ),
                                 'may_terminate' => true,
                             ),
+                            'markserved' => array(
+                                'type' => 'Literal',
+                                'options' => array(
+                                    'route' => '/mark',
+                                    'defaults' => array(
+                                        'controller' => 'CoffeeBarController\Staff',
+                                        'action'     => 'mark',
+                                    ),
+                                ),
+                            ),
                         ),
                     ),
                     /**
@@ -204,41 +131,21 @@ return array(
                             ),
                         ),
                     ),
-//                ),
-//            ),
         ),
     ),
     'controllers' => array(
         'invokables' => array(
-            'CoffeeBarController\Index' => 'CoffeeBar\Controller\IndexController',
             'CoffeeBarController\Staff' => 'CoffeeBar\Controller\StaffController',
-            'CoffeeBarController\Tab'   => 'CoffeeBar\Controller\TabController',
             'CoffeeBarController\Chef'  => 'CoffeeBar\Controller\ChefController',
         ),
-        'factories' => array(
-//            'CoffeeBarController\Tab' => 'CoffeeBar\Factory\TabControllerFactory', 
-        )
     ),
     'view_manager' => array(
         'template_path_stack' => array(
             __DIR__ . '/../view',
         ),
     ),
-    'view_helpers' => array(
-        'invokables' => array(
-            'MenuItemFormCollection' => 'CoffeeBar\Form\Helper\MenuItemFormCollection',
-        ),
-    ),
     'navigation' => array(
         'default' => array(
-            array(
-                'label' => 'Open new tab',
-                'route' => 'tab/open', // utiliser les clés du tableau $router
-            ),
-            array(
-                'label' => 'Opened tabs',
-                'route' => 'tab/opened',
-            ),
             array(
                 'label' => 'Staff',
                 'route' => 'staff',
@@ -246,10 +153,6 @@ return array(
             array(
                 'label' => 'Chef\'s todo',
                 'route' => 'chef',
-            ),
-            array(
-                'label' => 'Flush cache',
-                'route' => 'flush',
             ),
         ),
     ),

@@ -28,26 +28,33 @@ class ChefController extends AbstractActionController
     {
         $request = $this->getRequest() ;    
         if($request->isPost()) {
-            $id = $request->getPost()->get('id') ;
-
             if(!is_array($request->getPost()->get('prepared'))) {
                 $this->flashMessenger()->addErrorMessage('Aucun plat ou boisson n\'a été choisi pour servir');
                 return $this->redirect()->toRoute('chef');
             }
             
-            $food = array() ;
-            foreach($request->getPost()->get('prepared') as $item)
-            {
-                $groups = explode('_', $item) ;
-                $food[] = $groups[2] ;
-            }
+            $foodPerTab = $this->getPreparedFoodPerTab($request->getPost()->get('prepared')) ;
 
-            if(!empty($food))
+            if(!empty($foodPerTab))
             {
                 $markPrepared = $this->serviceLocator->get('MarkFoodPreparedCommand') ;
-                $markPrepared->markPrepared($id, $food) ;
+                foreach($foodPerTab as $id => $food)
+                {
+                    $markPrepared->markPrepared($id, $food) ;
+                }
             }
         }
         return $this->redirect()->toRoute('chef') ;
+    }
+    
+    protected function getPreparedFoodPerTab($prepared)
+    {
+        $array = array() ;
+        foreach($prepared as $item)
+        {
+            $groups = explode('_', $item) ;
+            $array[$groups[1]][] = $groups[2] ;
+        }
+        return $array ;
     }
 }

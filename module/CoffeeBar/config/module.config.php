@@ -114,19 +114,6 @@ return array(
                                     ),
                                 ),
                             ),
-                            /**
-                             * cette URL : http://coffeebar.home/tab/markserved mène à cette route
-                             */
-                            'markserved' => array(
-                                'type' => 'Literal',
-                                'options' => array(
-                                    'route' => '/mark',
-                                    'defaults' => array(
-                                        'controller'    => 'CoffeeBarController\Tab',
-                                        'action'        => 'served',
-                                    ),
-                                ),
-                            ),
                         ),
                     ),
                     /**
@@ -172,6 +159,16 @@ return array(
                                     ),
                                 ),
                                 'may_terminate' => true,
+                            ),
+                            'markserved' => array(
+                                'type' => 'Literal',
+                                'options' => array(
+                                    'route' => '/mark',
+                                    'defaults' => array(
+                                        'controller' => 'CoffeeBarController\Staff',
+                                        'action'     => 'mark',
+                                    ),
+                                ),
                             ),
                         ),
                     ),

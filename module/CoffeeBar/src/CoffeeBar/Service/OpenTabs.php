@@ -14,7 +14,6 @@ use CoffeeBar\Entity\OpenTabs\Tab;
 use CoffeeBar\Entity\OpenTabs\TabInvoice;
 use CoffeeBar\Entity\OpenTabs\TabItem;
 use CoffeeBar\Entity\OpenTabs\TabStatus;
-use MissingKeyException;
 use Zend\EventManager\EventManagerInterface;
 use Zend\EventManager\ListenerAggregateInterface;
 
@@ -55,15 +54,11 @@ class OpenTabs implements ListenerAggregateInterface
     
     protected function loadTodoByTab()
     {
-        try {
-            $this->todoByTab = unserialize($this->cache->getItem('openTabs')) ;
-        } catch (MissingKeyException $ex) {
-            echo $ex->getMessage() . ' - openTabs cache key missing' ;
-        }
+        $this->todoByTab = $this->cache->getOpenTabs() ;
     }
     protected function saveTodoByTab()
     {
-        $this->cache->setItem('openTabs', serialize($this->todoByTab)) ;
+        $this->cache->saveOpenTabs(serialize($this->todoByTab)) ;
     }
     
     /**
@@ -208,7 +203,7 @@ class OpenTabs implements ListenerAggregateInterface
 
     /**
      * Retourne la liste des tables servies
-     * @return ArrayObject
+     * @return array
      */
     public function activeTableNumbers()
     {
@@ -218,8 +213,8 @@ class OpenTabs implements ListenerAggregateInterface
         {
             $array[] = $v->getTableNumber() ;
         }
-        sort($array) ;
-        return new ArrayObject($array) ;
+        
+        return $array ;
     }
     
     /**
@@ -270,8 +265,7 @@ class OpenTabs implements ListenerAggregateInterface
      */
     public function isTableActive($id)
     {
-        $activeTableNumbers = $this->activeTableNumbers() ;
-        if(in_array($id, $activeTableNumbers->getArrayCopy()))
+        if(in_array($id, $this->activeTableNumbers()))
         {
             return TRUE ;
         } else {

@@ -8,7 +8,7 @@ class IndexController extends AbstractActionController
 {
     public function indexAction()
     {
-        $cache = $this->serviceLocator->get('Cache\Persistence');
+        $cache = $this->serviceLocator->get('TabCache');
         return array('result' => $cache) ;
     }
     

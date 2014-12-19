@@ -17,9 +17,7 @@ Activer le module dans config/application.config.php
 Créer le fichier module/CoffeeBar/Module.php avec ce contenu minimal :
 
 <?php
-
 namespace CoffeeBar ;
-
 class Module
 {
     public function getAutoloaderConfig()
@@ -42,7 +40,6 @@ class Module
 Créer le fichier module/CoffeeBar/config/module.config.php avec ce contenu minimal :
 
 <?php
-
 return array() ;
 
 Vérifier que le site fonctionne toujours.
@@ -104,4 +101,161 @@ return array(
     ),
 );
 
+On pourrait utiliser le cache directement mais comme on va avoir besoin de définir des méthodes dédiées pour accéder à nos éléments, nous allons créer un service dédié.
 
+// module/CoffeeBar/src/CoffeeBar/Service/TabCacheService.php
+<?php
+namespace CoffeeBar\Service ;
+
+class TabCacheService
+{
+    // notez la propriété protégée et les accesseurs qui nous permettent ainsi de gérer les dépendances. 
+    protected $cache ;
+    
+    public function getCache() {
+        return $this->cache;
+    }
+
+    // l’injection se fait dans le constructeur : cela permet de rendre l’élément obligatoire au bon fonctionnement de notre service.
+    public function __construct($cache) {
+        $this->cache = $cache;
+    }
+}
+
+Notre cache va stocker la liste des notes ouvertes d'une part, la todolist du chef d'autre part et chaque note individuellement, par leur id unique. Pour chacune de ces listes, on va créer un index dans le cache et des méthodes pour accéder à ces index.
+
+// module/CoffeeBar/src/CoffeeBar/Service/TabCacheService.php
+<?php
+namespace CoffeeBar\Service ;
+use Zend\Cache\Exception\MissingKeyException;
+class TabCacheService
+{
+    // autres méthodes
+
+    // instancier la clé pour la liste des notes ouvertes
+    // index = 'openTabs'
+    public function setOpenTabs($openTabs)
+    {
+        if($this->cache->hasItem('openTabs'))
+        {
+            return $this->cache->getItem('openTabs') ;
+        } else {
+            return $this->cache->setItem('openTabs', $openTabs) ;
+        }
+    }
+    // récupérer la liste des notes ouverte
+    public function getOpenTabs()
+    {
+        try {
+            return unserialize($this->cache->getItem('openTabs')) ;
+        } catch (MissingKeyException $ex) {
+            echo 'openTabs cache key missing' ;
+        }
+    }
+    // mettre la liste à jour
+    public function saveOpenTabs($openTabs)
+    {
+        return $this->cache->setItem('openTabs', $openTabs) ;
+    }
+    
+    // instancier la clé pour la todolist du chef
+    // index = 'todoList'
+    public function setTodoList($todoList)
+    {
+        if($this->cache->hasItem('todoList'))
+        {
+            return $this->cache->getItem('todoList') ;
+        } else {
+            return $this->cache->setItem('todoList', $todoList) ;
+        }
+    }
+    // récupérer la todolist du chef
+    public function getTodoList()
+    {
+        try {
+            return unserialize($this->cache->getItem('todoList')) ;
+        } catch (MissingKeyException $ex) {
+            echo 'todoList cache key missing' ;
+        }
+    }
+    // mettre la todolist à jour
+    public function saveTodoList($todoList)
+    {
+        return $this->cache->setItem('todoList', $todoList) ;
+    }
+
+    // récupérer un élément du cache par son index
+    public function getItem($id)
+    {
+        return $this->cache->getItem($id) ;
+    }
+    // créer un élément du cache avec un index et les données
+    public function setItem($id, $datas)
+    {
+        $this->cache->setItem($id, $datas) ;
+    }
+    // vérifie si l'élément du cache désigné par son index existe
+    public function hasItem($id)
+    {
+        return $this->cache->hasItem($id) ;
+    }
+}
+
+NOTE : le long du tutoriel, je vais vous faire rééditer des classes et des vues sur lesquels on sera déjà passé. Il va y avoir des parties qui auront disparu au second passage : typiquement les use, les instructions extends, implements etc... Cela ne veut pas dire qu'il faut les retirer. C'est juste pour alléger le code. S'il faut retirer du code, soit je vous remettrais le passage intégralement, pour voir ce qui a disparu, soit je vous signalerais qu'il faut effacer une ligne pour la remplacer par une autre.
+
+Chargeons notre service dans le gestionnaire de services (Service Manager). On en profitera pour instancier les deux index au lancement de l'application (au moment du bootstrap).
+
+// module/CoffeeBar/Module.php
+<?php
+namespace CoffeeBar;
+use ArrayObject;
+use CoffeeBar\Entity\OpenTabs\TodoByTab;
+use CoffeeBar\Service\TabCacheService;
+use Zend\Mvc\MvcEvent;
+class Module
+{
+    public function getConfig() //
+
+    public function getAutoloaderConfig() //
+
+    // la fonction onBootstrap est une fonction qui est chargée dans l'application.
+    // elle admet en argument un objet de type MvcEvent systématiquement.
+    public function onBootstrap(MvcEvent $event)
+    {
+        $sm = $event->getApplication()->getServiceManager() ;
+        $cache = $sm->get('TabCache') ;
+        // le cache ne stocke que des strings. Il faut sérializer notre objet.
+        $cache->setOpenTabs(serialize(new TodoByTab())) ;
+        $cache->setTodoList(serialize(new ArrayObject())) ;
+    }
+
+    public function getServiceConfig()
+    {
+        return array(
+            'factories' => array(
+                'TabCache' => function($sm) {
+                    // la clé qui a été définie dans notre configuration
+                    $cacheService = $sm->get('Cache\Persistence') ;
+                    $tabCache = new TabCacheService($cacheService) ;
+                    return $tabCache ;
+                },
+            ),
+        ) ;
+    }
+}
+
+On charge dans chaque clé un objet de type ArrayObject. Pour la liste des notes ouvertes, on va charger un objet personnalisé qui va hériter de ArrayObject et pour la todolist du chef, on va se contenter d'utiliser un objet ArrayObject directement.
+
+Voyons rapidement notre objet TodoByTab.
+
+// module/CoffeeBar/src/CoffeeBar/Entity/OpenTabs/TodoByTab.php
+<?php
+namespace CoffeeBar\Entity\OpenTabs ;
+use ArrayObject;
+class TodoByTab extends ArrayObject {}
+
+On aurait pu utiliser directement un objet ArrayObject. Mais je peux expliquer :
+- L'avantage réel, c'est que vous pouvez utiliser du typage explicite (type hinting) avec cette classe... 
+- La vraie raison dans notre cas, cependant, c'est que je ne savais pas, au moment où j'ai créé cette classe, s'il avait fallu lui ajouter des méthodes personnalisées... J'ai pris les devants en créant une classe dédiée, au cas où. Pour la todolist du chef, je l'ai créée à la fin de l'application, j'avais compris où j'allais.
+
+Rendez vous dans le prochain article pour faire un peu de route / controleur / vue...

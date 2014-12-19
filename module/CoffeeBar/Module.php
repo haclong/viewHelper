@@ -156,7 +156,7 @@ class Module implements FormElementProviderInterface
                 },
                 'TabAggregate' => function($sm) {
                     $events = $sm->get('TabEventManager') ;
-                    $cache = $sm->get('Cache\Persistence') ;
+                    $cache = $sm->get('TabCache') ;
                     $tab = new TabAggregate() ;
                     $tab->setEventManager($events) ;
                     $tab->setCache($cache) ;
@@ -170,13 +170,13 @@ class Module implements FormElementProviderInterface
                     return $tabCache ;
                 },
                 'OpenTabs' => function($sm) {
-                    $cache = $sm->get('Cache\Persistence') ;
+                    $cache = $sm->get('TabCache') ;
                     $openTabs = new OpenTabs() ;
                     $openTabs->setCache($cache) ;
                     return $openTabs ;
                 },
                 'ChefTodoList' => function($sm) {
-                    $cache = $sm->get('Cache\Persistence') ;
+                    $cache = $sm->get('TabCache') ;
                     $todoList = new ChefTodoList() ;
                     $todoList->setCache($cache) ;
                     return $todoList ;

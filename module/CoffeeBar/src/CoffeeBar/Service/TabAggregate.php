@@ -22,7 +22,6 @@ use CoffeeBar\Exception\FoodNotOutstanding;
 use CoffeeBar\Exception\FoodNotPrepared;
 use CoffeeBar\Exception\MustPayEnough;
 use CoffeeBar\Exception\TabAlreadyClosed;
-use CoffeeBar\Exception\TabAlreadyOpened;
 use CoffeeBar\Exception\TabNotOpen;
 use DateTime;
 use Zend\EventManager\EventManagerAwareInterface;

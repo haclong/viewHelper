@@ -10,21 +10,6 @@ namespace CoffeeBar\Entity\TabStory ;
 
 class TabStory
 {
-    const CLOSE = false ;
-    const OPEN = true ;
-
-    /**
-     * Tab Identifiant
-     * @var int (Guid)
-     */
-    protected $id ;
-    
-    /**
-     * Tab ouverte ou pas
-     * @var bool
-     */
-    protected $status ;
-    
     /**
      * Array of events
      * @var array
@@ -57,7 +42,6 @@ class TabStory
     
     public function __construct()
     {
-        $this->status = self::CLOSE ;
         $this->eventsLoaded = array() ;
         $this->outstandingDrinks = new OrderedItems() ;
         $this->outstandingFood = new OrderedItems() ;
@@ -129,23 +113,6 @@ class TabStory
         {
             $this->preparedFood->offsetSet(NULL, $item) ;
         }
-    }
-    
-    public function isTabOpened()
-    {
-        return $this->status ;
-    }
-    
-    public function openTab()
-    {
-        $this->status = self::OPEN ;
-        return $this ;
-    }
-    
-    public function closeTab()
-    {
-        $this->status = self::CLOSE ;
-        return $this ;
     }
     
     public function areDrinksOutstanding(array $menuNumbers)
