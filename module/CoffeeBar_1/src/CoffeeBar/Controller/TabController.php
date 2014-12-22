@@ -2,28 +2,12 @@
 
 namespace CoffeeBar\Controller ;
 
-use CoffeeBar\Entity\TabStory\OrderModel;
 use CoffeeBar\Exception\MustPayEnough;
 use CoffeeBar\Exception\TabAlreadyClosed;
 use Zend\Mvc\Controller\AbstractActionController;
 
 class TabController extends AbstractActionController
 {
-    public function orderAction()
-    {
-        } elseif($request->isPost()) {
-            $form->setData($request->getPost()) ;
-            if($form->isValid()) {
-                $orderModel = $form->getObject() ;
-                $tableNumber = $orderModel->getId() ;
-                $openTabs = $this->serviceLocator->get('OpenTabs') ;
-                $placeOrder = $this->serviceLocator->get('PlaceOrderCommand') ;
-                $items = $this->assignOrderedItems($orderModel) ;
-                $placeOrder->placeOrder($openTabs->tabIdForTable($tableNumber), $items) ;
-                return $this->redirect()->toRoute('tab/status', array('id' => $tableNumber));
-            }
-    }
-
     public function closeAction()
     {
         $openTabs = $this->serviceLocator->get('OpenTabs') ;
@@ -70,24 +54,4 @@ class TabController extends AbstractActionController
         $result['form'] = $form ;
         return array('result' => $result) ;
     }
-    
-    protected function assignOrderedItems(OrderModel $model)
-    {
-        $items = $this->serviceLocator->get('OrderedItems') ;
-        $menu = $this->serviceLocator->get('CoffeeBarEntity\MenuItems') ;
-        foreach($model->getItems() as $item)
-        {
-            for($i = 0; $i < $item->getNumber(); $i++)
-            {
-                $orderedItem = clone $this->serviceLocator->get('OrderedItem') ;
-                $orderedItem->setId($item->getId()) ;
-                $orderedItem->setDescription($menu->getById($item->getId())->getDescription()) ;
-                $orderedItem->setPrice($menu->getById($item->getId())->getPrice()) ;
-                $orderedItem->setIsDrink($menu->getById($item->getId())->getIsDrink()) ;
-                $items->offsetSet(NULL, $orderedItem) ;
-            }
-        }
-        return $items ;
-    }
-    
 }

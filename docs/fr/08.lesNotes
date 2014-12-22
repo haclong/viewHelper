@@ -47,18 +47,6 @@ return array(
         'routes' => array(
             // ajouter aux autres routes
             'tab' => array(
-                /**
-                 * cette route ne correspond à aucune page
-                 * notez l'absence d'options 'defaults' parce qu'il n'y a
-                 * pas de pages valides à cette adresse http://coffeebar.home/tab
-                 * cette adresse retourne une erreur 404
-                 * vous pouvez également décider de définir un contrôleur 
-                 * et une action par défaut pour éviter l'erreur 404
-                 */
-                'type' => 'Literal',
-                'options' => array(
-                    'route' => '/tab',
-                ),
                 'child_routes' => array(
                     /**
                      * cette URL : http://coffeebar.home/tab/opened mène à cette route

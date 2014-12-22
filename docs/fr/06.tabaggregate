@@ -61,8 +61,9 @@ Appel au cache
 
 Pour stocker une note dans le cache et recharger une note à partir du cache :
 
-// use CoffeeBar\Entity\TabStory\TabStory;
-
+// module/CoffeeBar/src/CoffeeBar/Service/TabAggregate.php
+class TabAggregate
+{
     /**
      * Load the tab story by id
      * @param string $id - Tab guid
@@ -92,6 +93,7 @@ Pour stocker une note dans le cache et recharger une note à partir du cache :
         // il faut serializer l'objet $story. Le cache ne prendra pas d'objets.
         $this->cache->setItem($id, serialize($story)) ;
     }
+}
 
 Très rapidement, la classe TabStory(). Pour le moment, la classe n'a que deux propriétés.
 
