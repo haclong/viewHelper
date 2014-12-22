@@ -100,13 +100,16 @@ class TabController extends AbstractActionController
 
             $status = $openTabs->invoiceForTable($id) ;
 
-            if($status->hasUnservedItems())
-            {
-                $this->flashMessenger()->addErrorMessage('Il reste des éléments commandés pour cette table');
+            try {
+                if($status->hasUnservedItems())
+                {
+                    throw new TabHasUnservedItem('Il reste des éléments commandés pour cette table') ;
+                }
+            } catch (TabHasUnservedItem $e) {
+                $this->flashMessenger()->addErrorMessage($e->getMessage());
                 return $this->redirect()->toRoute('tab/status', array('id' => $id));
             }
 
-            $openTabs = $this->serviceLocator->get('OpenTabs') ;
             $form->get('id')->setValue($openTabs->tabIdForTable($id)) ;
         // si on ne sait pas pour quelle table on va passer commande, retourner à la page 'Ouvrir une commande'
         } else {

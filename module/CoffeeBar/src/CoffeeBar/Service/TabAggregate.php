@@ -61,6 +61,7 @@ class TabAggregate implements ListenerAggregateInterface, EventManagerAwareInter
         $this->listeners[] = $events->attach('markFoodServed', array($this, 'onMarkFoodServed')) ;
         $this->listeners[] = $events->attach('foodServed', array($this, 'onFoodServed')) ;
         $this->listeners[] = $events->attach('closeTab', array($this, 'onCloseTab')) ;
+        $this->listeners[] = $events->attach('tabClosed', array($this, 'onTabClosed')) ;
     }
 
     public function detach(EventManagerInterface $events)
