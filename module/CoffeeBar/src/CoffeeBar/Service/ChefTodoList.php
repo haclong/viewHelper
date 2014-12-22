@@ -12,7 +12,6 @@ use ArrayObject;
 use CoffeeBar\Entity\ChefTodoList\TodoListGroup;
 use CoffeeBar\Entity\ChefTodoList\TodoListItem;
 use CoffeeBar\Entity\OpenTabs\TabItem;
-use MissingKeyException;
 use Zend\EventManager\EventManagerInterface;
 use Zend\EventManager\ListenerAggregateInterface;
 
@@ -50,18 +49,14 @@ class ChefTodoList implements ListenerAggregateInterface
     {
         return $this->cache ;
     }
-    
+
     protected function loadTodoList()
     {
-        try {
-            $this->todoList = unserialize($this->cache->getItem('todoList')) ;
-        } catch (MissingKeyException $ex) {
-            echo $ex->getMessage() . ' - todoList cache key missing' ;
-        }
+        $this->todoList = $this->cache->getTodoList() ;
     }
     protected function saveTodoList()
     {
-        $this->cache->setItem('todoList', serialize($this->todoList)) ;
+        $this->cache->saveTodoList(serialize($this->todoList)) ;
     }
     
     public function onFoodOrdered($events)

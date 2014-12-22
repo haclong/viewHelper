@@ -1,0 +1,237 @@
+Les plats sont prêts. L'événement 'foodPrepared' a été déclenché. 
+
+NOTE : le long du tutoriel, je vais vous faire rééditer des classes et des vues sur lesquels on sera déjà passé. Il va y avoir des parties qui n'apparaitront plus systématiquement au second passage : typiquement les use, les instructions extends, implements etc... Cela ne veut pas dire qu'il faut les retirer. C'est juste pour alléger le code. S'il faut retirer du code, soit je vous remettrais le passage intégralement, pour voir ce qui a disparu, soit je vous signalerais qu'il faut effacer une ligne pour la remplacer par une autre.
+
+Voici ce qu'on peut dire :
+
+Dans l'historique de la note, les plats qui figuraient dans la liste $outstandingFood seront retirés de cette liste mais seront déplacés vers une nouvelle liste : $preparedFood.
+
+Concernant la todo list du chef cuisine, les plats préparés vont disparaitre de sa liste de plats à préparer.
+
+Concernant la liste des notes actives, les éléments qui étaient dans la liste $itemsInPreparation seront déplacés dans la liste $itemsToServe.
+
+L'historique de la note 
+
+Les plats commandés mais pas encore préparés sont stockés dans la liste $outstandingFood. Pour chaque numéro de menu correspondant à un plat préparé, il faut identifier à quelle clé est stocké ce plat dans le tableau $outstandingFood afin de pouvoir supprimer cette clé. La propriété $outstandingFood est un objet de type OrderedItems (héritant de ArrayObject). Il nous faut la méthode qui, avec le numéro de menu, peut retourner la clé dans la propriété $outstandingFood.
+
+// module/CoffeeBar/src/CoffeeBar/Entity/TabStory/OrderedItems.php
+<?php
+namespace CoffeeBar\Entity\TabStory ;
+class OrderedItems extends ArrayObject
+{
+    public function getKeyById($id)
+    {
+        $iterator = $this->getIterator() ;
+        
+        foreach($iterator as $key => $value)
+        {
+            if($value->getId() == $id) {
+                return $key ;
+            }
+        }
+    }
+}
+
+Les plats préparés sont stockés dans une nouvelle propriété $preparedFood dans l'objet TabStory.
+
+// module/CoffeeBar/src/CoffeeBar/TabStory/TabStory.php
+<?php
+namespace CoffeeBar\Entity\TabStory ;
+class TabStory
+{
+    protected $preparedFood ; // CoffeeBar/Entity/TabStory/OrderedItems
+    
+    public function __construct()
+    {
+        $this->preparedFood = new OrderedItems() ;
+    }
+
+    public function getPreparedFood() {
+        return $this->preparedFood;
+    }
+}
+
+Allons maintenant supprimer les plats préparés de la liste TabStory::outstandingFood et allons les rajouter dans la liste TabStory::preparedFood
+
+// module/CoffeeBar/src/CoffeeBar/Service/TabAggregate.php
+<?php
+class TabAggregate
+{
+    ...
+    public function attach(EventManagerInterface $events)
+    {
+        $this->listeners[] = $events->attach('foodPrepared', array($this, 'onFoodPrepared')) ;
+    }
+
+    public function onFoodPrepared($events)
+    {
+        $foodPrepared = $events->getParam('foodPrepared') ; 
+        
+        $story = $this->loadStory($foodPrepared->getId()) ;
+        
+        foreach($foodPrepared->getFood() as $food)
+        {
+            // idenfier la clé du plat préparé dans la liste $outstandingFood
+            $key = $story->getOutstandingFood()->getKeyById($food) ;
+            
+            if($key !== null)
+            {
+                // récupérer l'élément OrderedItem correspondant à la clé
+                $value = $story->getOutstandingFood()->offsetGet($key) ;
+
+                // supprimer l'élément dans la liste $outstandingFood avec la clé
+                $story->getOutstandingFood()->offsetUnset($key) ;
+
+                // ajouter l'élément dans la liste $preparedFood
+                $story->getPreparedFood()->offsetSet(NULL, $value) ;
+            }
+        }
+        $this->saveStory($foodPrepared->getId(), $story) ;
+    }
+}
+
+Voilà pour l'historique de la note.
+
+Voyons maintenant ce qu'il se passe pour la todoList du chef cuisinier : quand le plat est préparé, il faut le retirer de la liste du chef, bien sûr.
+
+// module/CoffeeBar/src/CoffeeBar/Service/ChefTodoList.php
+<?php
+namespace CoffeeBar\Service;
+class ChefTodoList implements ListenerAggregateInterface
+{
+    
+    public function attach(EventManagerInterface $events)
+    {
+        $this->listeners[] = $events->attach('foodPrepared', array($this, 'onFoodPrepared')) ;
+    }
+
+    public function onFoodPrepared($events)
+    {
+        $foodPrepared = $events->getParam('foodPrepared') ;
+
+        $this->loadTodoList() ;
+
+        foreach($this->todoList as $key => $item)
+        {
+            // si l'id unique de la note dans la todolist correspond 
+            // à l'id unique de la note dans l'événement $foodPrepared'
+            if($item->getTab() == $foodPrepared->getId())
+            {
+                $groupKey = $key ;
+                $group = $item ;
+            }
+        }
+        
+        // $foodPrepared->getFood retourne la liste des numéros de menu préparés
+        foreach($foodPrepared->getFood() as $food)
+        {
+            // il faut identifier la clé du plat préparé dans la todoList du chef
+            $key = $group->getKeyByMenuNumber($food) ;
+            if($key !== null)
+            {
+                // retirer le plat préparé de la todolist du chef
+                $group->getItems()->offsetUnset($key) ;
+            }
+        }
+        
+        // s'il n'y a plus d'éléments dans la propriété TodoListGroup::items
+        // alors retirer l'élément TodoListGroup
+        if(count($group->getItems()) == 0)
+        {
+            $this->todoList->offsetUnset($groupKey) ;
+        }
+            
+        $this->saveTodoList() ;
+    }
+}
+
+Ici encore, identifions l'élément avec le numéro de menu
+
+// module/CoffeeBar/src/CoffeeBar/Entity/ChefTodoList.php
+<?php
+namespace CoffeeBar\Entity\ChefTodoList;
+class TodoListGroup {
+    public function getKeyByMenuNumber($menuNumber)
+    {
+        foreach($this->getItems() as $key => $value)
+        {
+            if($value->getMenuNumber() == $menuNumber)
+            {
+                return $key ;
+            }
+        }
+    }
+}
+
+Et maintenant, au tour de la liste des notes ouvertes
+
+// module/CoffeeBar/src/CoffeeBar/Service/OpenTabs.php
+<?php
+namespace CoffeeBar\Service ;
+use CoffeeBar\Entity\OpenTabs\TabStatus;
+class OpenTabs 
+{
+    public function attach(EventManagerInterface $events)
+    {
+        $this->listeners[] = $events->attach('foodPrepared', array($this, 'onFoodPrepared')) ;
+    }
+
+    /**
+     * Move the prepared items from the itemsInPreparation list to the itemsToServe list
+     * @param Events $events
+     */
+    public function onFoodPrepared($events)
+    {
+        $foodPrepared = $events->getParam('foodPrepared') ;
+
+        $this->loadTodoByTab() ;
+        $tab = $this->todoByTab->offsetGet($foodPrepared->getId()) ;
+        
+        // on récupère la liste des numéros de menu des plats préparés
+        foreach($foodPrepared->getFood() as $food)
+        {
+            // ici aussi, on récupère l'index du tableau avec le numéro de menu
+            $key = $tab->getItemsInPreparation()->getKeyByMenuNumber($food) ;
+            if($key !== null)
+            {
+                // on récupère l'élément stocké à cet index
+                $value = $tab->getItemsInPreparation()->offsetGet($key) ;
+
+                // on ajoute l'élément à la liste de $itemsToServe
+                $tab->getItemsToServe()->addItem($value) ;
+
+                // on supprime l'élément de la liste $itemsInPreparation
+                $tab->getItemsInPreparation()->offsetUnset($key) ;
+            }
+        }
+        $this->todoByTab->offsetSet($foodPrepared->getId(), $tab) ;
+        $this->saveTodoByTab() ;
+    }
+}
+
+La propriété $itemsInPreparation est un objet de type CoffeeBar\Entity\OpenTabs\ItemsArray
+
+// module/CoffeeBar/src/CoffeeBar/Entity/OpenTabs/ItemsArray.php
+<?php
+namespace CoffeeBar\Entity\OpenTabs ;
+class ItemsArray extends ArrayObject 
+{
+    public function getKeyByMenuNumber($menuNumber)
+    {
+        $iterator = $this->getIterator() ;
+        
+        foreach($iterator as $key => $value)
+        {
+            if($value->getMenuNumber() == $menuNumber) {
+                return $key ;
+            }
+        }
+    }
+}
+
+Ainsi, quand l'événement 'foodPrepared' est déclenché :
+- les plats préparés disparaissent de la todoList du chef cuisinier
+- les plats préparés disparaissent de la liste $itemsInPreparation et rejoignent la liste $itemsToServe
+- les plats préparés disparaissent de la liste $outstandingFood et rejoignent la liste $preparedFood
+
+Il reste à servir tout ça.

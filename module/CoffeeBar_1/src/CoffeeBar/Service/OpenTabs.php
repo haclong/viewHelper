@@ -9,7 +9,6 @@
 namespace CoffeeBar\Service ;
 
 use CoffeeBar\Entity\OpenTabs\TabInvoice;
-use CoffeeBar\Entity\OpenTabs\TabItem;
 use Zend\EventManager\EventManagerInterface;
 use Zend\EventManager\ListenerAggregateInterface;
 
@@ -17,75 +16,9 @@ class OpenTabs implements ListenerAggregateInterface
 {
     public function attach(EventManagerInterface $events)
     {
-        $this->listeners[] = $events->attach('drinksOrdered', array($this, 'onDrinksOrdered')) ;
-        $this->listeners[] = $events->attach('foodOrdered', array($this, 'onFoodOrdered')) ;
-        $this->listeners[] = $events->attach('foodPrepared', array($this, 'onFoodPrepared')) ;
         $this->listeners[] = $events->attach('drinksServed', array($this, 'onDrinksServed')) ;
         $this->listeners[] = $events->attach('foodServed', array($this, 'onFoodServed')) ;
         $this->listeners[] = $events->attach('tabClosed', array($this, 'onTabClosed')) ;
-    }
-    
-    public function onDrinksOrdered($events)
-    {
-        $drinksOrdered = $events->getParam('drinksOrdered') ;
-
-        $this->loadTodoByTab() ;
-        $tab = $this->getTab($drinksOrdered->getId()) ;
-        
-        foreach($drinksOrdered->getItems() as $drink)
-        {
-            $item = new TabItem($drink->getId(), $drink->getDescription(), $drink->getPrice()) ;
-            $tab->getItemsToServe()->addItem($item) ;
-        }
-        
-        $this->todoByTab->offsetSet($drinksOrdered->getId(), $tab) ;
-        $this->saveTodoByTab() ;
-    }
-
-    /**
-     * Listener add food ordered tab content
-     * @param Events $events
-     */
-    public function onFoodOrdered($events)
-    {
-        $foodOrdered = $events->getParam('foodOrdered') ;
-
-        $this->loadTodoByTab() ;
-        $tab = $this->getTab($foodOrdered->getId()) ;
-        
-        foreach($foodOrdered->getItems() as $food)
-        {
-            $item = new TabItem($food->getId(), $food->getDescription(), $food->getPrice()) ;
-            $tab->getItemsInPreparation()->addItem($item) ;
-        }
-        
-        $this->todoByTab->offsetSet($foodOrdered->getId(), $tab) ;
-        $this->saveTodoByTab() ;
-    }
-    
-    /**
-     * Move the prepared items from the itemsInPreparation list to the itemsToServe list
-     * @param Events $events
-     */
-    public function onFoodPrepared($events)
-    {
-        $foodPrepared = $events->getParam('foodPrepared') ;
-
-        $this->loadTodoByTab() ;
-        $tab = $this->getTab($foodPrepared->getId()) ;
-        
-        foreach($foodPrepared->getFood() as $food)
-        {
-            $key = $tab->getItemsInPreparation()->getKeyByMenuNumber($food) ;
-            if($key !== null)
-            {
-                $value = $tab->getItemsInPreparation()->offsetGet($key) ;
-                $tab->getItemsToServe()->addItem($value) ;
-                $tab->getItemsInPreparation()->offsetUnset($key) ;
-            }
-        }
-        $this->todoByTab->offsetSet($foodPrepared->getId(), $tab) ;
-        $this->saveTodoByTab() ;
     }
     
     /**
@@ -149,25 +82,6 @@ class OpenTabs implements ListenerAggregateInterface
         $this->loadTodoByTab() ;
         $this->todoByTab->offsetUnset($tabClosed->getId()) ;
         $this->saveTodoByTab() ;
-    }
-
-    
-    /**
-     * Retourne l'id de la table
-     * @param int $table - Numéro de la table
-     * @return id
-     */
-    public function tabIdForTable($table)
-    {
-        $this->loadTodoByTab() ;
-        foreach($this->todoByTab->getArrayCopy() as $k => $v)
-        {
-            if($v->getTableNumber() == $table)
-            {
-                return $k ;
-            }
-        }
-        return NULL ;
     }
 
     /**
