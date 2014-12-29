@@ -237,7 +237,7 @@ class OpenTabs implements ListenerAggregateInterface
 
     /**
      * Retourne le statut de la commande
-     * @param int $table - Id de la table
+     * @param int $table - numéro de la table
      * @return TabStatus
      */
     public function statusForTable($table)

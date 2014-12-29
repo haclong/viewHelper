@@ -12,11 +12,11 @@ use ArrayObject;
 
 class TabStatus
 {
-    protected $tabId;
-    protected $tableNumber;
-    protected $itemsToServe;
-    protected $itemsInPreparation;
-    protected $itemsServed;
+    protected $tabId; // int (guid) - id unique de la note
+    protected $tableNumber; // int - numéro de la table
+    protected $itemsToServe; // ItemsArray (ArrayObject) - liste des éléments à servir
+    protected $itemsInPreparation; // ItemsArray (ArrayObject) - liste des éléments en préparation
+    protected $itemsServed; // ItemsArray (ArrayObject) - liste des éléments servis
 
     public function getTabId() {
         return $this->tabId;

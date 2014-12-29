@@ -10,7 +10,7 @@ namespace CoffeeBar\Exception ;
 
 use Exception;
 
-class TabAlreadyOpened extends Exception
+class TableNumberUnavailable extends Exception
 {
     
 }

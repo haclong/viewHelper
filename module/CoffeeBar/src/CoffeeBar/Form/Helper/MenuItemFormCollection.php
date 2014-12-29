@@ -24,11 +24,9 @@ class MenuItemFormCollection extends FormCollection
             $templateMarkup .= $fieldsetHelper($element);
         }
 
-//        var_dump($element->get('id')) ;
         $formRow          = $this->view->plugin('FormRow') ;
 
         $templateMarkup         = '';
-//var_dump($this->view->plugin('FormRow')) ;        
         $templateMarkup  .= '<fieldset class="form-inline">' ;
         $templateMarkup  .= $formRow($element->get('id')) . '&nbsp;&nbsp;';
         $templateMarkup  .= $formRow($element->get('number')) ;

@@ -14,7 +14,7 @@ use DateTime;
 class FoodOrdered
 {
     protected $id ; // guid
-    protected $items ; // OrderedItems
+    protected $items ; // CoffeeBar\Entity\TabStory\OrderedItems
     protected $date ; // DateTime
     
     function getId() {

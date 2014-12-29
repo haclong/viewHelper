@@ -5,7 +5,8 @@ namespace CoffeeBar\Controller ;
 use CoffeeBar\Entity\TabStory\OrderModel;
 use CoffeeBar\Exception\MustPayEnough;
 use CoffeeBar\Exception\TabAlreadyClosed;
-use CoffeeBar\Exception\TabAlreadyOpened;
+use CoffeeBar\Exception\TabHasUnservedItem;
+use CoffeeBar\Exception\TableNumberUnavailable;
 use Zend\Mvc\Controller\AbstractActionController;
 
 class TabController extends AbstractActionController
@@ -24,9 +25,9 @@ class TabController extends AbstractActionController
 
             try {
                 if($openTabs->isTableActive($posted['tableNumber'])) {
-                    throw new TabAlreadyOpened('Tab is already opened') ;
+                    throw new TableNumberUnavailable('Table has a tab already') ;
                 }
-            } catch (TabAlreadyOpened $e) {
+            } catch (TableNumberUnavailable $e) {
                 $this->flashMessenger()->addErrorMessage($e->getMessage());
                 return $this->redirect()->toRoute('tab/open');
             }

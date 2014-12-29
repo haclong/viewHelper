@@ -38,13 +38,13 @@ class TabStory
     protected $outstandingDrinks ;
     
     /**
-     * liste des plats commandés, non servis
+     * liste des plats commandés, non préparés
      * @var OrderedItems
      */
     protected $outstandingFood ;
     
     /**
-     *
+     * liste des plats préparés, non servis
      * @var OrderedItems
      */
     protected $preparedFood ;

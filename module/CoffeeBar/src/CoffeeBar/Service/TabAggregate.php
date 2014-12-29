@@ -32,7 +32,6 @@ class TabAggregate implements ListenerAggregateInterface, EventManagerAwareInter
 {
     protected $listeners = array() ;
     protected $events ;
-    protected $id ;
     protected $cache ;
 
     public function setEventManager(EventManagerInterface $events)

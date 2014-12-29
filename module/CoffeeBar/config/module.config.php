@@ -212,9 +212,6 @@ return array(
             'CoffeeBarController\Tab'   => 'CoffeeBar\Controller\TabController',
             'CoffeeBarController\Chef'  => 'CoffeeBar\Controller\ChefController',
         ),
-        'factories' => array(
-//            'CoffeeBarController\Tab' => 'CoffeeBar\Factory\TabControllerFactory', 
-        )
     ),
     'view_manager' => array(
         'template_path_stack' => array(
@@ -228,6 +225,7 @@ return array(
     ),
     'navigation' => array(
         'default' => array(
+            // la page 'Home' se trouve dans module/Application/config/module.config.php
             array(
                 'label' => 'Open new tab',
                 'route' => 'tab/open', // utiliser les clés du tableau $router

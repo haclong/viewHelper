@@ -38,6 +38,8 @@ class ChefController extends AbstractActionController
             if(!empty($foodPerTab))
             {
                 $markPrepared = $this->serviceLocator->get('MarkFoodPreparedCommand') ;
+                // $id = tab unique id
+                // $food = menu number of the prepared food 
                 foreach($foodPerTab as $id => $food)
                 {
                     $markPrepared->markPrepared($id, $food) ;
@@ -53,6 +55,8 @@ class ChefController extends AbstractActionController
         foreach($prepared as $item)
         {
             $groups = explode('_', $item) ;
+            // $groups[1] = tab unique id
+            // $groups[2] = menu number of the prepared food
             $array[$groups[1]][] = $groups[2] ;
         }
         return $array ;

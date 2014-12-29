@@ -10,9 +10,9 @@ namespace CoffeeBar\Entity\OpenTabs ;
 
 class TabItem
 {
-    protected $menuNumber;
-    protected $description;
-    protected $price;
+    protected $menuNumber; // int - id de l'élément de menu
+    protected $description; // string - nom de l'élément de menu
+    protected $price; // float - prix
     
     public function __construct($menuNumber, $description, $price)
     {

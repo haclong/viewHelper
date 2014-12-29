@@ -15,7 +15,7 @@ use Zend\EventManager\EventManagerInterface;
 class PlaceOrder implements EventManagerAwareInterface 
 {
     protected $id ; // int
-    protected $items ; // ArrayObject
+    protected $items ; // CoffeeBar\Entity\TabStory\OrderedItems
     protected $events ;
     protected $date ; // DateTime
     

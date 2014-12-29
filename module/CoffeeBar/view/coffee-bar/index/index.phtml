@@ -1,13 +1,3 @@
-<?php
-
-echo __FILE__ ;
-
-if(!isset($result))
-{
-    $result = array() ;
-}
-
-?>
 <pre>
 <?php
 var_dump($result->getTodoList()) ;
@@ -19,7 +9,5 @@ foreach($openTabs as $k => $v)
 {
     var_dump(unserialize($result->getItem($k))) ;
 }
-
-
 ?>
 </pre>
