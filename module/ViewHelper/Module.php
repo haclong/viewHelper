@@ -26,6 +26,11 @@ class Module {
     
     public function getViewHelperConfig()
     {
+        return array(
+            'invokables' => array(
+                'afficheTemperature' => 'ViewHelper\View\Helper\Temperature',
+            ),
+        ) ;
     }
     
     public function getServiceConfig() 

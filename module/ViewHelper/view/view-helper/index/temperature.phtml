@@ -1,0 +1,11 @@
+<h1>Temperature View Helper</h1>
+
+    <?php if(is_null($this->temperature)) : ?>
+
+<div>Pas de température indiquée</div>
+
+<?php else :?>
+
+<div>En Celsius, il fait <?php echo $this->afficheTemperature($this->temperature, false) ; ?></div>
+<div>En Fahrenheit, il fait <?php echo $this->afficheTemperature($this->temperature, true) ; ?></div>
+<?php endif; ?>
