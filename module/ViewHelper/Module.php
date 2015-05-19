@@ -29,6 +29,7 @@ class Module {
         return array(
             'invokables' => array(
                 'afficheTemperature' => 'ViewHelper\View\Helper\Temperature',
+                'insereMenuUser' => 'ViewHelper\View\Helper\UserMenu',
             ),
         ) ;
     }
