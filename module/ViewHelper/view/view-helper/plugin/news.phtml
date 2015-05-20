@@ -1,0 +1,10 @@
+<h3>Last news View Helper</h3>
+
+<?php foreach($this->lastNews as $news) :?>
+<dl>
+    <dt><?php echo $news['title'] ; ?></dt>
+    <dd><?php echo $news['date'] ;?> - <?php echo $news['summary'] ; ?></dd>
+</dl>
+<?php endforeach; ?>
+
+

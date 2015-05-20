@@ -31,11 +31,22 @@ class Module {
                 'afficheTemperature' => 'ViewHelper\View\Helper\Temperature',
                 'insereMenuUser' => 'ViewHelper\View\Helper\UserMenu',
             ),
+            'factories' => array(
+                'listeDernieresInfos' => function($sm) {
+                    $service = $sm->getServiceLocator()->get('NewsService') ;
+                    $news = $service->getLatestNews() ;
+                    return new View\Helper\LastNews($news) ;
+                },
+            ),
         ) ;
     }
     
     public function getServiceConfig() 
     {
-        
+        return array(
+            'invokables' => array(
+                'NewsService' => 'ViewHelper\Service\NewsService',
+            ),
+        ) ;
     }
 }

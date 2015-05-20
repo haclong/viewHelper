@@ -8,17 +8,13 @@ return array(
     
     'router' => array(
         'routes' => array(
-            'temperature' => array(
-                'type' => 'segment',
+            'home' => array(
+                'type' => 'literal',
                 'options' => array(
-                    'route' => '/temperature/[:celsius]',
-                    'constraints' => array(
-                        'celsius' => '[0-9]+',
-                    ),
+                    'route' => '/',
                     'defaults' => array(
                         'controller' => 'ViewHelper\IndexController',
-                        'action' => 'temperature',
-                        'celsius' => 37,
+                        'action' => 'index',
                     ),
                 ),
             ),
@@ -29,15 +25,5 @@ return array(
         'template_path_stack' => array(
             __DIR__ . '/../view',
         ),
-    ),
-    
-    'navigation' => array(
-        'default' => array(
-            array(
-                'label' => 'Temperature',
-                'route' => 'temperature',
-                'order' => 100,
-            ),
-       ),
     ),
 );

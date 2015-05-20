@@ -11,7 +11,7 @@ use Zend\Mvc\Controller\AbstractActionController;
  */
 class IndexController extends AbstractActionController 
 {
-    public function temperatureAction()
+    public function indexAction()
     {
         $celsius = $this->params()->fromRoute('celsius') ;
         return array('temperature' => $celsius) ;
